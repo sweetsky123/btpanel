@@ -1,0 +1,7 @@
+import{u as a,Q as s,l as e,n as t,H as l}from"./utils-lib.js?v=1763689792";import{ax as o,ay as n}from"./firewall.js?v=1763689792";import{u as r}from"./column.js?v=1763689792";import{c as i,r as m,aE as p,ap as c,e as d,v as u,I as _,x as b,y as j,J as x,z as y}from"./base-lib.js?v=1763689792";import"./__commonjsHelpers__.js?v=1763689792";import"./index110.js?v=1763689792";const f=i({__name:"index",setup(i){a();const f=m(!1),g=m([]),v=async()=>{await s({loading:f,request:n(),data:{sites:[Array,g]}})},w=[{label:"网站名称",prop:"site_name"},{label:"防护状态",render:a=>p(c,{modelValue:a.open,onChange:e=>(async(a,e)=>{await s({loading:"正在"+(e?"开启":"关闭")+"防护状态，请稍后...",request:o(e,{siteName:a}),message:!0}),v()})(a.site_name,e),size:"small"})},{label:"今日触发",prop:"total.day_total"},{label:"触发总数",prop:"total.total"},{label:"PHP版本",render:a=>d("span",{class:a.version.includes("不兼容")?"!text-danger":""},[a.version])},r([{onClick:a=>{t({title:"【".concat(a.site_name,"】网站安全日志"),area:93,component:()=>l(()=>import("./index494.js?v=1763689792"),__vite__mapDeps([]),import.meta.url),compData:{row:a}})},title:"日志"}])];return u(async()=>v()),(a,s)=>{const t=e,l=_("bt-loading");return b(),j("div",null,[x(d(t,{column:w,data:y(g)},null,8,["data"]),[[l,y(f)],[l,"正在加载中，请稍后...","title"]])])}}});export{f as default};
+function __vite__mapDeps(indexes) {
+  if (!__vite__mapDeps.viteFileDeps) {
+    __vite__mapDeps.viteFileDeps = []
+  }
+  return indexes.map((i) => __vite__mapDeps.viteFileDeps[i])
+}

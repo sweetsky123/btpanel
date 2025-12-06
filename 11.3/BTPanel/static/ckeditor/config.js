@@ -1,0 +1,1 @@
+CKEDITOR.editorConfig=function(n){n.language="zh-cn",n.height=330};

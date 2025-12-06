@@ -1,0 +1,1 @@
+import{j as s,r as i}from"./base-lib.js?v=1763689792";const a=s("WP-LOCAL-Config-STORE",()=>({tabActive:i("domain"),isRefreshDomain:i(!1),domain:i(""),showSSLTips:i(!1),sslTabActive:i("current")}));export{a as u};
