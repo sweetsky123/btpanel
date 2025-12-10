@@ -3,13 +3,6 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 LANG=en_US.UTF-8
 
-# ====== 统一下载变量，便于修改 ======
-Download_URL=" https://github.com/sweetsky123/btpanel/releases/latest/download/"
-# 保证脚本内老变量也指向这个地址，便于兼容内部使用
-download_Url=${Download_URL}
-downloads_Url=${Download_URL}
-# ================================================
-
 Font_Yellow='\033[1;33m'
 Font_Suffix='\033[0m'
 
@@ -71,19 +64,19 @@ if [ $(whoami) != "root" ];then
 	IS_DEBIAN=$(cat /etc/issue|grep Debian)
 	if [ "${IS_UBUNTU}" ];then
 		echo "请使用下面命令重新执行安装面板"
-		echo "if [ -f /usr/bin/curl ];then wget  https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;else curl install_latest.sh https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;fi;bash install_latest.sh && rm -rf install_latest.sh"
+		echo "sudo $DOWN_EXEC https://download.bt.cn/install/install_panel.sh;sudo bash install_panel.sh"
 	elif [ "${IS_DEBIAN}" ];then
 		echo "请执行su root命令切换为root账户后"
 		echo "执行下面命令重新安装宝塔面板"
-		echo "if [ -f /usr/bin/curl ];then wget  https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;else curl install_latest.sh https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;fi;bash install_latest.sh && rm -rf install_latest.sh"
+		echo "$DOWN_EXEC https://download.bt.cn/install/install_panel.sh;bash install_panel.sh"
 	else
 		if [ -f "/usr/bin/sudo" ];then
 			echo "请使用下面命令使用root权限重新执行安装"
-			echo "if [ -f /usr/bin/curl ];then wget  https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;else curl install_latest.sh https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;fi;bash install_latest.sh && rm -rf install_latest.sh"
+			echo "sudo $DOWN_EXEC https://download.bt.cn/install/install_panel.sh;sudo bash install_panel.sh"
 		else
 			echo "请执行su root命令切换为root账户后"
 			echo "执行下面命令重新安装宝塔面板"
-			echo "if [ -f /usr/bin/curl ];then wget  https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;else curl install_latest.sh https://github.com/sweetsky123/btpanel/releases/latest/download/install_latest.sh;fi;bash install_latest.sh && rm -rf install_latest.sh"
+			echo "$DOWN_EXEC https://download.bt.cn/install/install_panel.sh;bash install_panel.sh"
 		fi
 	fi
 
@@ -112,6 +105,8 @@ fi
 HOSTNAME_CHECK=$(cat /etc/hostname)
 if [ -z "${HOSTNAME_CHECK}" ];then
 	echo "localhost" > /etc/hostname 
+	# echo "当前主机名hostname为空无法安装宝塔面板，请咨询服务器运营商设置好hostname后再重新安装"
+	# exit 1
 fi
 
 UBUNTU_NO_LTS=$(cat /etc/issue|grep Ubuntu|grep -E "19|21|23|25")
@@ -133,6 +128,9 @@ setup_path="/www"
 python_bin=$setup_path/server/panel/pyenv/bin/python
 cpu_cpunt=$(cat /proc/cpuinfo|grep processor|wc -l)
 panelPort=$(expr $RANDOM % 55535 + 10000)
+# if [ "$1" ];then
+# 	IDC_CODE=$1
+# fi
 
 Ready_Check(){
     WWW_DISK_SPACE=$(df |grep /www|awk '{print $4}')
@@ -149,6 +147,26 @@ Ready_Check(){
         echo -e "请尝试清理磁盘空间后再重新进行安装"
         exit 1
     fi
+
+    # ROOT_DISK_INODE=$(df -i|grep /$|awk '{print $2}')
+	# if [ "${ROOT_DISK_INODE}" != "0" ];then
+	# 	ROOT_DISK_INODE_FREE=$(df -i|grep /$|awk '{print $4}')
+	# 	if [ "${ROOT_DISK_INODE_FREE}" -le 1000 ];then
+	# 		echo -e "系统盘剩余inodes空间不足1000,无法继续安装！"
+	# 		echo -e "请尝试清理磁盘空间后再重新进行安装"
+	# 		exit 1
+	# 	fi
+	# fi
+
+	# WWW_DISK_INODE==$(df -i|grep /www|awk '{print $2}')
+	# if [ "${WWW_DISK_INODE}" ] && [ "${WWW_DISK_INODE}" != "0" ] ;then
+	# 	WWW_DISK_INODE_FREE=$(df -i|grep /www|awk '{print $4}')
+	# 	if [ "${WWW_DISK_INODE_FREE}" ] && [ "${WWW_DISK_INODE_FREE}" -le 1000 ] ;then
+	# 		echo -e "/www盘剩余inodes空间不足1000, 无法继续安装！"
+	# 		echo -e "请尝试清理磁盘空间后再重新进行安装"
+	# 		exit 1
+	# 	fi
+	# fi
 }
 
 GetSysInfo(){
@@ -220,6 +238,17 @@ GetSysInfo(){
 
 	fi
 	echo "True" > /tmp/btpanel_err.pl
+# 	if [ -f "/usr/bin/qrencode" ];then
+# 		echo -e "或微信扫码联系企业微信技术求助"
+# 		echo -e "============================================"
+# 		qrencode -t ANSIUTF8 "https://work.weixin.qq.com/kfid/kfc9072f0e29a53bd52"
+# 		echo -e "============================================"
+# 	else
+# 		echo -e "或手机访问以下链接、扫码联系企业微信技术求助"
+# 		echo -e "============================================"
+# 		echo -e "联系链接:https://work.weixin.qq.com/kfid/kfc9072f0e29a53bd52"
+# 		echo -e "============================================"
+# 	fi
 }
 Red_Error(){
 	echo '=================================================';
@@ -321,9 +350,16 @@ Set_Repo_Url(){
 		CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
 		if [ "${CN_CHECK}" == "True" ];then
 			SOURCE_URL_CHECK=$(grep -E 'security.ubuntu.com|archive.ubuntu.com|security.debian.org|deb.debian.org' /etc/apt/sources.list)
+			# if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ];then
+			# 	SOURCE_URL_CHECK=$(grep -E 'security.ubuntu.com|archive.ubuntu.com|security.debian.org|deb.debian.org' /etc/apt/sources.list.d/ubuntu.sources)
+			# fi
 		fi
 
+		#GET_SOURCES_URL=$(cat /etc/apt/sources.list|grep ^deb|head -n 1|awk -F[/:] '{print $4}')
 		GET_SOURCES_URL=$(cat /etc/apt/sources.list|grep ^deb|head -n 1|sed -E 's|^[^ ]+ https?://([^/]+).*|\1|')
+		# if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ];then
+		# 	GET_SOURCES_URL=$(cat /etc/apt/sources.list.d/ubuntu.sources|grep URIs:|head -n 1|sed -E 's|^[^ ]+ https?://([^/]+).*|\1|')
+		# fi
 		NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${GET_SOURCES_URL} -o /dev/null)
 		NODE_STATUS=$(echo ${NODE_CHECK}|awk '{print $1}')
 		TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $2 * 1000}'|cut -d '.' -f 1)
@@ -347,6 +383,16 @@ Set_Repo_Url(){
 							sed -i "s/security.debian.org/${list}/g" /etc/apt/sources.list
 							sed -i "s/deb.debian.org/${list}/g" /etc/apt/sources.list
 						fi
+						# if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ];then
+						# 	\cp -rpa /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
+						# 	sed -i "s/${GET_SOURCES_URL}/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# 	sed -i "s/cn.security.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# 	sed -i "s/cn.archive.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# 	sed -i "s/security.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# 	sed -i "s/archive.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# 	sed -i "s/security.debian.org/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# 	sed -i "s/deb.debian.org/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
+						# fi
 						break;
 					fi
 				fi
@@ -386,7 +432,7 @@ Service_Add(){
 		chkconfig --level 2345 bt on
 		Centos9Check=$(cat /etc/redhat-release |grep ' 9')
 		if [ "${Centos9Check}" ];then
-            wget -O /usr/lib/systemd/system/btpanel.service ${Download_URL}btpanel.service
+            wget -O /usr/lib/systemd/system/btpanel.service ${download_Url}/init/systemd/btpanel.service
 			systemctl enable btpanel
 		fi		
 	elif [ "${PM}" == "apt-get" ]; then
@@ -394,6 +440,14 @@ Service_Add(){
 	fi 
 }
 Set_Centos7_Repo(){
+# 	CN_YUM_URL=$(grep -E "aliyun|163|tencent|tsinghua" /etc/yum.repos.d/CentOS-Base.repo)
+# 	if [ -z "${CN_YUM_URL}" ];then
+# 		if [ -z "${download_Url}" ];then
+# 			download_Url="http://download.bt.cn"
+# 		fi
+# 		curl -Ss --connect-timeout 3 -m 60 ${download_Url}/install/vault-repo.sh|bash
+# 		return
+# 	fi
 	MIRROR_CHECK=$(cat /etc/yum.repos.d/CentOS-Base.repo |grep "[^#]mirror.centos.org")
 	if [ "${MIRROR_CHECK}" ] && [ "${is64bit}" == "64" ];then
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
@@ -423,9 +477,9 @@ Set_Centos7_Repo(){
 		if [ "$?" == "0" ] ;then
 			\cp -rpa /etc/yum.repos.d/ /etc/yumBak
 			if [ -z "${download_Url}" ];then
-				download_Url=${Download_URL}
+				download_Url="http://download.bt.cn"
 			fi
-			curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/el7repo.tar.gz
+			curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/el7repo.tar.gz
 			rm -f /etc/yum.repos.d/*.repo
 			tar -xvzf el7repo.tar.gz -C /etc/yum.repos.d/
 		fi
@@ -448,8 +502,8 @@ Set_Centos8_Repo(){
 	ALIYUN_CHECK=$(cat /etc/motd|grep "Alibaba Cloud ")
 	if [  "${ALIYUN_CHECK}" ] && [ "${is64bit}" == "64" ] && [ ! -f "/etc/yum.repos.d/Centos-vault-8.5.2111.repo" ];then
 		rename '.repo' '.repo.bak' /etc/yum.repos.d/*.repo
-		wget ${Download_URL}/Centos-vault-8.5.2111.repo -O /etc/yum.repos.d/Centos-vault-8.5.2111.repo
-		wget ${Download_URL}/epel-archive-8.repo -O /etc/yum.repos.d/epel-archive-8.repo
+		wget https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo -O /etc/yum.repos.d/Centos-vault-8.5.2111.repo
+		wget https://mirrors.aliyun.com/repo/epel-archive-8.repo -O /etc/yum.repos.d/epel-archive-8.repo
 		sed -i 's/mirrors.cloud.aliyuncs.com/url_tmp/g'  /etc/yum.repos.d/Centos-vault-8.5.2111.repo &&  sed -i 's/mirrors.aliyun.com/mirrors.cloud.aliyuncs.com/g' /etc/yum.repos.d/Centos-vault-8.5.2111.repo && sed -i 's/url_tmp/mirrors.aliyun.com/g' /etc/yum.repos.d/Centos-vault-8.5.2111.repo
 		sed -i 's/mirrors.aliyun.com/mirrors.cloud.aliyuncs.com/g' /etc/yum.repos.d/epel-archive-8.repo
 	fi
@@ -463,14 +517,14 @@ Set_Centos8_Repo(){
 	yum install unzip tar -y
 	if [ "$?" != "0" ] ;then
 		if [ -z "${download_Url}" ];then
-			download_Url=${Download_URL}
+			download_Url="http://download.bt.cn"
 		fi
 		if [ ! -f "/usr/bin/tar" ] ;then
-			curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/tar-1.30-5.el8.x86_64.rpm
+			curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/tar-1.30-5.el8.x86_64.rpm
 			yum install tar-1.30-5.el8.x86_64.rpm -y
 		fi
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
-		curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/el8repo.tar.gz
+		curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/el8repo.tar.gz
 		rm -f /etc/yum.repos.d/*.repo
 		tar -xvzf el8repo.tar.gz -C /etc/yum.repos.d/
 	fi
@@ -502,7 +556,7 @@ get_node_url(){
 	echo '---------------------------------------------';
 	echo "Selected download node...";
 	nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn https://na1-node.bt.cn https://jp1-node.bt.cn https://cf1-node.aapanel.com https://download.bt.cn);
-
+	
 	CURL_CHECK=$(which curl)
 	if [ "$?" == "0" ];then
 		CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
@@ -556,9 +610,8 @@ get_node_url(){
 	fi
 	rm -f $tmp_file1
 	rm -f $tmp_file2
-	# 强制使用头部定义的内网 Download_URL，防止覆盖为公网节点
-	download_Url=${Download_URL}
-	downloads_Url=${Download_URL}
+	download_Url=$NODE_URL
+	downloads_Url=http://io.bt.sb
 	echo "Download node: $download_Url";
 	echo '---------------------------------------------';
 }
@@ -593,6 +646,10 @@ Install_RPM_Pack(){
 	if [ "${Centos8Check}" ];then
 		Set_Centos8_Repo
 	fi	
+	Centos7Check=$(cat /etc/redhat-release | grep ' 7.' | grep -iE 'centos|Red Hat')
+	if [ "${Centos7Check}" ];then
+		Set_Centos7_Repo
+	fi
 	isExc=$(cat $yumPath|grep httpd)
 	if [ "$isExc" = "" ];then
 		echo "exclude=httpd nginx php mysql mairadb python-psutil python2-psutil" >> $yumPath
@@ -607,6 +664,14 @@ Install_RPM_Pack(){
 		dnf config-manager --set-enabled crb -y
 	fi
 
+	#SYS_TYPE=$(uname -a|grep x86_64)
+	#yumBaseUrl=$(cat /etc/yum.repos.d/CentOS-Base.repo|grep baseurl=http|cut -d '=' -f 2|cut -d '$' -f 1|head -n 1)
+	#[ "${yumBaseUrl}" ] && checkYumRepo=$(curl --connect-timeout 5 --head -s -o /dev/null -w %{http_code} ${yumBaseUrl})	
+	#if [ "${checkYumRepo}" != "200" ] && [ "${SYS_TYPE}" ];then
+	#	curl -Ss --connect-timeout 3 -m 60 http://download.bt.cn/install/yumRepo_select.sh|bash
+	#fi
+	
+	#尝试同步时间(从bt.cn)
 	echo 'Synchronizing system time...'
 	getBtTime=$(curl -sS --connect-timeout 3 -m 60 http://www.bt.cn/api/index/get_time)
 	if [ "${getBtTime}" ];then	
@@ -618,6 +683,7 @@ Install_RPM_Pack(){
 		rm -rf /etc/localtime
 		ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
+		#尝试同步国际时间(从ntp服务器)
 		ntpdate 0.asia.pool.ntp.org
 		setenforce 0
 	fi
@@ -625,6 +691,7 @@ Install_RPM_Pack(){
 	startTime=`date +%s`
 
 	sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+	#yum remove -y python-requests python3-requests python-greenlet python3-greenlet
 	yumPacks="libcurl-devel wget tar gcc make zip unzip openssl openssl-devel gcc libxml2 libxml2-devel libxslt* zlib zlib-devel libjpeg-devel libpng-devel libwebp libwebp-devel freetype freetype-devel lsof pcre pcre-devel vixie-cron crontabs icu libicu-devel c-ares libffi-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel qrencode at mariadb rsyslog net-tools"
 	yum install -y ${yumPacks}
 
@@ -670,6 +737,17 @@ Install_Deb_Pack(){
 	fi
 	apt-get install ruby -y
 	apt-get install lsb-release -y
+	#apt-get install ntp ntpdate -y
+	#/etc/init.d/ntp stop
+	#update-rc.d ntp remove
+	#cat >>~/.profile<<EOF
+	#TZ='Asia/Shanghai'; export TZ
+	#EOF
+	#rm -rf /etc/localtime
+	#cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+	#echo 'Synchronizing system time...'
+	#ntpdate 0.asia.pool.ntp.org
+	#apt-get upgrade -y
 	LIBCURL_VER=$(dpkg -l|grep libcurl4|awk '{print $3}')
 	if [ "${LIBCURL_VER}" == "7.68.0-1ubuntu2.8" ];then
 		apt-get remove libcurl4 -y
@@ -709,7 +787,7 @@ Get_Versions(){
 	fi
 
 
-	if [ -f /etc/os-release ];then
+	if [ -f "/etc/os-release" ];then
 		. /etc/os-release
 		OS_V=${VERSION_ID%%.*}
 		if [ "${ID}" == "opencloudos" ] && [[ "${OS_V}" =~ ^(9)$ ]];then
@@ -790,7 +868,7 @@ Get_Versions(){
 	fi
 }
 Install_Python_Lib(){
-	curl -Ss --connect-timeout 3 -m 60 ${Download_URL}/pip_select.sh|bash
+	curl -Ss --connect-timeout 3 -m 60 $download_Url/install/pip_select.sh|bash
 	pyenv_path="/www/server/panel"
 	if [ -f $pyenv_path/pyenv/bin/python ];then
 	 	is_ssl=$($python_bin -c "import ssl" 2>&1|grep cannot)
@@ -799,7 +877,7 @@ Install_Python_Lib(){
 			chmod -R 700 $pyenv_path/pyenv/bin
 			is_package=$($python_bin -m psutil 2>&1|grep package)
 			if [ "$is_package" = "" ];then
-				wget -O $pyenv_path/pyenv/pip.txt ${Download_URL}/pip.txt -T 15
+				wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip.txt -T 15
 				$pyenv_path/pyenv/bin/pip install -U pip
 				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 				$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
@@ -877,10 +955,10 @@ Install_Python_Lib(){
 	echo "==============================================="
 	if [ "${os_version}" != "" ];then
 		pyenv_file="/www/pyenv.tar.gz"
-		wget -O $pyenv_file ${Download_URL}/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+		wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
 		if [ "$?" != "0" ];then
 			get_node_url $download_Url
-			wget -O $pyenv_file ${download_Url}/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+			wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
 		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
@@ -911,7 +989,7 @@ Install_Python_Lib(){
 	cd /www
 	python_src='/www/python_src.tar.xz'
 	python_src_path="/www/Python-${py_version}"
-	wget -O $python_src ${Download_URL}/Python-${py_version}.tar.xz -T 15
+	wget -O $python_src $download_Url/src/Python-${py_version}.tar.xz -T 15
 	tmp_size=$(du -b $python_src|awk '{print $1}')
 	if [ $tmp_size -lt 10703460 ];then
 		rm -f $python_src
@@ -929,8 +1007,8 @@ Install_Python_Lib(){
 	fi
 	cd ~
 	rm -rf $python_src_path
-	wget -O $pyenv_path/pyenv/bin/activate ${Download_URL}/activate.panel -T 5
-	wget -O $pyenv_path/pyenv/pip.txt ${Download_URL}/pip-3.7.16.txt -T 5
+	wget -O $pyenv_path/pyenv/bin/activate $download_Url/install/pyenv/activate.panel -T 5
+	wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip-3.7.16.txt -T 5
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 $pyenv_path/pyenv/bin/pip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 $pyenv_path/pyenv/bin/python
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
@@ -941,7 +1019,7 @@ Install_Python_Lib(){
 	$pyenv_path/pyenv/bin/pip install -U wheel==0.34.2 
 	$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 
-	wget -O pip-packs.txt ${Download_URL}/pip-packs.txt
+	wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
 	echo "正在后台安装pip依赖请稍等.........."
 	PIP_PACKS=$(cat pip-packs.txt)
 	for P_PACK in ${PIP_PACKS};
@@ -992,13 +1070,13 @@ Install_Bt(){
 		sleep 1
 	fi
 
-	wget -O /etc/init.d/bt ${Download_URL}/bt6.init -T 15
-	wget -O /www/server/panel/install/public.sh ${Download_URL}/public.sh -T 15
+	wget -O /etc/init.d/bt ${download_Url}/install/src/bt6.init -T 15
+	wget -O /www/server/panel/install/public.sh ${downloads_Url}/install/public.sh -T 15
 	echo "=============================================="
 	echo "正在下载面板文件,请稍等..................."
 	echo "=============================================="
-	wget -O panel.zip ${Download_URL}/panel6_latest.zip -T 15
-	#wget -O panel.zip ${Download_URL}/panel-lts.zip -T 15
+	wget -O panel.zip ${downloads_Url}/install/src/panel6_latest.zip -T 15
+	#wget -O panel.zip ${download_Url}/install/src/panel-lts.zip -T 15
 
 	if [ -f "${setup_path}/server/panel/data/default.db" ];then
 		if [ -d "/${setup_path}/server/panel/old_data" ];then
@@ -1075,7 +1153,9 @@ Install_Bt(){
     fi
 
 	rm -f panel.zip
-    wget -O /www/server/panel/data/userInfo.json ${Download_URL}/userinfo.json
+	wget -O /www/server/panel/data/userInfo.json http://io.bt.sy/install/userInfo.json
+	sed -i 's/[0-9\.]\+[ ]\+www.bt.cn//g' /etc/hosts
+	sed -i 's/[0-9\.]\+[ ]\+api.bt.sb//g' /etc/hosts
 	rm -f ${setup_path}/server/panel/class/*.pyc
 	rm -f ${setup_path}/server/panel/*.pyc
 
@@ -1084,9 +1164,9 @@ Install_Bt(){
 	chmod -R +x ${setup_path}/server/panel/script
 	ln -sf /etc/init.d/bt /usr/bin/bt
 	echo "${panelPort}" > ${setup_path}/server/panel/data/port.pl
-	wget -O /etc/init.d/bt ${Download_URL}/bt7.init -T 15
-	wget -O /www/server/panel/init.sh ${Download_URL}/bt7.init -T 15
-	wget -O /www/server/panel/data/softList.conf ${Download_URL}/softListtls10.conf
+	wget -O /etc/init.d/bt ${download_Url}/install/src/bt7.init -T 15
+	wget -O /www/server/panel/init.sh ${download_Url}/install/src/bt7.init -T 15
+	wget -O /www/server/panel/data/softList.conf ${download_Url}/install/conf/softListtls10.conf
 
   	if [ ! -f "${setup_path}/server/panel/data/installCount.pl" ];then
 		echo "1 $(date)" > ${setup_path}/server/panel/data/installCount.pl
@@ -1174,6 +1254,10 @@ Set_Bt_Panel(){
 		btpython /www/server/panel/BT-Panel
 		Red_Error "ERROR: The BT-Panel service startup failed." "ERROR: 宝塔启动失败"
 	fi
+# 	wget -O oneav_bt.sh https://download.bt.cn/install/plugin/oneav/install.sh > /dev/null 2>&1
+# 	bash oneav_bt.sh install > /www/server/panel/install//btinstall.log 2>&1
+# 	rm -f oneav_bt.sh
+
 	if [ "$PANEL_USER" ];then
 		cd ${setup_path}/server/panel/
 		btpython -c 'import tools;tools.set_panel_username("'$PANEL_USER'")'
@@ -1212,6 +1296,7 @@ Set_Firewall(){
 			iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport ${panelPort} -j ACCEPT
 			iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport ${sshPort} -j ACCEPT
 			iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 39000:40000 -j ACCEPT
+			#iptables -I INPUT -p tcp -m state --state NEW -m udp --dport 39000:40000 -j ACCEPT
 			iptables -A INPUT -p icmp --icmp-type any -j ACCEPT
 			iptables -A INPUT -s localhost -d localhost -j ACCEPT
 			iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
@@ -1238,12 +1323,14 @@ Set_Firewall(){
 			firewall-cmd --permanent --zone=public --add-port=${panelPort}/tcp > /dev/null 2>&1
 			firewall-cmd --permanent --zone=public --add-port=${sshPort}/tcp > /dev/null 2>&1
 			firewall-cmd --permanent --zone=public --add-port=39000-40000/tcp > /dev/null 2>&1
+			#firewall-cmd --permanent --zone=public --add-port=39000-40000/udp > /dev/null 2>&1
 			firewall-cmd --reload
 		fi
 	fi
 }
 Get_Ip_Address(){
 	getIpAddress=""
+	#getIpAddress=$(curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress)
 
 	ipv4_address=""
 	ipv6_address=""
@@ -1269,6 +1356,13 @@ Get_Ip_Address(){
 					ipv6_address="[$ipv6_address]"
 			fi
 	fi
+
+	if [ "${ipv4_address}" ];then
+		getIpAddress=$ipv4_address
+	elif [ "${ipv6_address}" ];then
+		getIpAddress=$ipv6_address
+	fi
+
 
 	if [ -z "${getIpAddress}" ] || [ "${getIpAddress}" = "0.0.0.0" ]; then
 		isHosts=$(cat /etc/hosts|grep 'www.bt.cn')
@@ -1356,18 +1450,70 @@ Install_Main(){
 }
 
 
-#clear
+clear
+echo -e "\033[32m=================================="
+echo -e "            赞助商广告              "
+echo -e "==================================\n"
+
+# DreamCloud 广告 托管商
+echo -e "\033[36mDreamCloud \033[31m★【亚太推荐】★\033[34m"
+echo -e "日本高防中国优化服务器，低至\$12.75 USD/月，海外 2Tbps+ 中国 100Gbps"
+echo -e "https://whmcs.as211392.com/LiteCore-EPYC-NEW?aff=1\n"
+
+# KURUN CLOUD 广告 托管商
+echo -e "\033[35mKURUN CLOUD \033[31m★【欧美推荐】★\033[35m"
+echo -e "美国洛杉矶 CN2GIA+CUPM9929+CMIN2 三网精品回国线路服务器 ★★★ 特价促销中 ★★★ KURUN CLOUD机房直销 最快回国线路 超稳定"
+echo -e "https://www.kurun.com/aff/HRZUXBJP"
+echo -e "TG: https://t.me/kuruncloud\n"
+
+# 金盾高防CDN 广告 永久
+echo -e "\033[32m金盾高防CDN 亚太及全球加速节点 被打死三天内无法处理则全部退款"
+echo -e "https://www.jinduncdn.com"
+echo -e "TG: @boos40\n"
+
+# 不死鸟CDN 广告（绿色） 2026 8.25 到期
+echo -e "\033[32m不死鸟CDN ★【CDN推荐】★"
+echo -e "不死鸟CDN•香港日本高防CDN，免实名/免备案，攻击打不死，专接扛不住！"
+echo -e "https://www.bsncdn.org"
+echo -e "TG频道: https://t.me/bsncdn001\n"
+
+# 广告投放价格说明
+echo -e "\n\033[31m脚本/官网 或 群组/频道广告 投放价格：300U /月、2500U /年、5000U /长期\033[0m\n"
+
+# 注意事项
+echo -e "\033[32m注意：我们不接受面板插入广告，只接受脚本、群组、频道、论坛官网 等广告投放！\033[0m\n"
+
+# 转账地址
+echo -e "\033[33m需要广告位 转账 TRC20：\033[95mTCYL5ZKJhkXyCNvy3bnbiCHuAa7yKWLDWc\033[0m\n"
+
+# 联系方式
+echo -e "\033[32m转完之后联系 @pingping_520 发送需要投放的广告内容\033[0m\n"
+
+echo -e "\033[32m==================================\033[0m\n"
+
+
+while [ "$ad_confirm" != 'y' ] && [ "$ad_confirm" != 'n' ]
+do
+	read -p "是否继续执行宝塔面板安装？(y/n): " ad_confirm;
+done
+
+if [ "$ad_confirm" == 'n' ];then
+	echo "已取消安装"
+	exit;
+fi
+
+clear
 
 echo "
-+---------------------------------------------------------------------- 
++----------------------------------------------------------------------
 | Bt-WebPanel FOR CentOS/Ubuntu/Debian
-+---------------------------------------------------------------------- 
-| Copyright © 2015-2099 BT-SOFT All rights reserved.
-+---------------------------------------------------------------------- 
++----------------------------------------------------------------------
+| Copyright © 2015-2099 BT-SOFT(http://www.bt.cn) All rights reserved.
++----------------------------------------------------------------------
 | The WebPanel URL will be http://SERVER_IP:${panelPort} when installed.
-+---------------------------------------------------------------------- 
++----------------------------------------------------------------------
 | 为了您的正常使用，请确保使用全新或纯净的系统安装宝塔面板，不支持已部署项目/环境的系统安装
-+---------------------------------------------------------------------- 
++----------------------------------------------------------------------
 "
 
 
@@ -1402,6 +1548,7 @@ while [ ${#} -gt 0 ]; do
 	shift 1
 done
 
+# 原有的确认机制已移至广告确认部分
 
 if [ -f "/www/server/panel/BT-Panel" ];then
 	AAPANEL_CHECK=$(grep www.aapanel.com /www/server/panel/BT-Panel)
@@ -1444,6 +1591,7 @@ else
 	HTTP_S="http"
 fi 
 
+#echo > /www/server/panel/data/bind.pl
 rm -rf /www/server/panel/data/bind.pl
 rm -rf /www/server/panel/data/userInfo.json
 echo -e "=================================================================="
@@ -1472,12 +1620,68 @@ echo -e " 内网面板地址:     ${HTTP_S}://${LOCAL_IP}:${panelPort}${auth_pat
 echo -e " username: $username"
 echo -e " password: $password"
 echo -e ""
+echo -e " 有任何问题可以联系 TG群组：@rsakuras 或者 QQ群组：1042692095 进行反馈！"
+echo -e ""
 echo -e "=================================================================="
+
+# 调用接口获取统计信息
+response=$(curl -s --connect-timeout 5 --max-time 10 "https://tj.bt.sb/api/count?param=bt&token=6920626369b1f05844f5e3d6f93b5f6e" 2>/dev/null)
+
+# 检查curl请求是否成功
+if [ $? -eq 0 ] && [ -n "$response" ]; then
+    # 检查 Python 版本
+    if command -v python3 &>/dev/null; then
+        # 使用 Python 3 解析 JSON
+        TodayRunTimes=$(echo "$response" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('today_count', 'N/A'))
+except (json.JSONDecodeError, KeyError, Exception):
+    print('N/A')
+" 2>/dev/null)
+        TotalRunTimes=$(echo "$response" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print(data.get('total_count', 'N/A'))
+except (json.JSONDecodeError, KeyError, Exception):
+    print('N/A')
+" 2>/dev/null)
+    elif command -v python &>/dev/null; then
+        # 使用 Python 2 解析 JSON
+        TodayRunTimes=$(echo "$response" | python -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print data.get('today_count', 'N/A')
+except (ValueError, KeyError, Exception):
+    print 'N/A'
+" 2>/dev/null)
+        TotalRunTimes=$(echo "$response" | python -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    print data.get('total_count', 'N/A')
+except (ValueError, KeyError, Exception):
+    print 'N/A'
+" 2>/dev/null)
+    else
+        TodayRunTimes="N/A"
+        TotalRunTimes="N/A"
+    fi
+
+    if [ "$TodayRunTimes" != "N/A" ] && [ "$TotalRunTimes" != "N/A" ]; then
+        echo ""
+        echo -e "${Font_Yellow}脚本当天运行次数: ${TodayRunTimes}; 共计运行次数: ${TotalRunTimes} ${Font_Suffix}"
+        echo ""
+    fi
+fi
 
 endTime=`date +%s`
 ((outTime=($endTime-$startTime)/60))
 if [ "${outTime}" -le "5" ];then
-    echo https://download.bt.cn > /www/server/panel/install/d_node.pl
+    echo ${download_Url} > /www/server/panel/install/d_node.pl
 fi
 if [ "${outTime}" == "0" ];then
 	((outTime=($endTime-$startTime)))
@@ -1486,3 +1690,45 @@ else
 	echo -e "Time consumed:\033[32m $outTime \033[0mMinute!"
 fi
 btpython /www/server/panel/tools.py ssl > /dev/null 2>&1
+
+#echo ""
+#echo ""
+echo -e "\033[32m=================================="
+echo -e "            赞助商广告              "
+echo -e "==================================\n"
+
+# DreamCloud 广告 托管商
+echo -e "\033[36mDreamCloud \033[31m★【亚太推荐】★\033[34m"
+echo -e "日本高防中国优化服务器，低至\$12.75 USD/月，海外 2Tbps+ 中国 100Gbps"
+echo -e "https://whmcs.as211392.com/LiteCore-EPYC-NEW?aff=1\n"
+
+# KURUN CLOUD 广告 托管商
+echo -e "\033[35mKURUN CLOUD \033[31m★【欧美推荐】★\033[35m"
+echo -e "美国洛杉矶 CN2GIA+CUPM9929+CMIN2 三网精品回国线路服务器 ★★★ 特价促销中 ★★★ KURUN CLOUD机房直销 最快回国线路 超稳定"
+echo -e "https://www.kurun.com/aff/HRZUXBJP"
+echo -e "TG: https://t.me/kuruncloud\n"
+
+# 金盾高防CDN 广告 永久
+echo -e "\033[32m金盾高防CDN 亚太及全球加速节点 被打死三天内无法处理则全部退款"
+echo -e "https://www.jinduncdn.com"
+echo -e "TG: @boos40\n"
+
+# 不死鸟CDN 广告（绿色） 2026 8.25 到期
+echo -e "\033[32m不死鸟CDN ★【CDN推荐】★"
+echo -e "不死鸟CDN•香港日本高防CDN，免实名/免备案，攻击打不死，专接扛不住！"
+echo -e "https://www.bsncdn.org"
+echo -e "TG频道: https://t.me/bsncdn001\n"
+
+# 广告投放价格说明
+echo -e "\n\033[31m脚本/官网 或 群组/频道广告 投放价格：300U /月、2500U /年、5000U /长期\033[0m\n"
+
+# 注意事项
+echo -e "\033[32m注意：我们不接受面板插入广告，只接受脚本、群组、频道、论坛官网 等广告投放！\033[0m\n"
+
+# 转账地址
+echo -e "\033[33m需要广告位 转账 TRC20：\033[95mTCYL5ZKJhkXyCNvy3bnbiCHuAa7yKWLDWc\033[0m\n"
+
+# 联系方式
+echo -e "\033[32m转完之后联系 @pingping_520 发送需要投放的广告内容\033[0m\n"
+
+echo -e "\033[32m==================================\033[0m\n"
