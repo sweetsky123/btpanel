@@ -1672,7 +1672,9 @@
                                 return t().w(function(e) {
                                     for (;;) switch (e.n) {
                                         case 0:
-                                            return o && (n.value = o), F.value = !0, St(), bt(), ht.value = !0, r = dt(), a = pt(), vt(r, a) || (r = "ltd"), e.n = 1, Ne(r);
+                                            /* 静默执行永久不再提醒 */
+                                            return Re("forver", !1), o && (n.value = o), F.value = !0, St(), bt(), ht.value = !0, r = dt(), a = pt(), vt(r, a) || (r = "ltd"), e.n = 1, Ne(r);
+                                            //return o && (n.value = o), F.value = !0, St(), bt(), ht.value = !0, r = dt(), a = pt(), vt(r, a) || (r = "ltd"), e.n = 1, Ne(r);
                                         case 1:
                                             ft(), U.value.bindUser && (window.onbeforeunload = function() {
                                                 return "是否要离开"

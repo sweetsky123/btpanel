@@ -371,6 +371,7 @@ const S = L("PRODUCT-PAYMENT-STORE", () => {
             const o = t.find(t => t.count === e);
             o && (Le.value = o.price)
         }, Ee = _(""), De = _(!1), Oe = _(Math.floor(Date.now() / 1e3)), Ae = _([]), xe = _(!1), Se = _(), Be = _(), Ve = async e => {
+            // 拦截弹窗，不显示优惠券弹窗
             W.value || (Ae.value = e.isCoupon, xe.value = e.isHome || !1, Se.value = y({
                 area: 40,
                 component: () => v(() => import("./index338.js?v=1763689792"), __vite__mapDeps([]),
@@ -382,6 +383,7 @@ const S = L("PRODUCT-PAYMENT-STORE", () => {
                 }
             }))
         }, Re = async () => {
+            // 拦截弹窗，不显示新用户优惠券弹窗
             W.value || V.value.bindUser || (Be.value = y({
                 area: 40,
                 component: () => v(() => import("./index438.js?v=1763689792"), __vite__mapDeps([]),
@@ -1006,6 +1008,18 @@ const S = L("PRODUCT-PAYMENT-STORE", () => {
             }
         },
         changeCloseTimeEvent: async (e, t = !0) => {
+            // 直接设置永久不再提醒
+            if (e === "forver") {
+                // 设置本地存储，确保永久不再提醒
+                sessionStorage.setItem("voucherOpenTime", "-100");
+                localStorage.setItem("voucherOpenTime", "-100");
+                G.value = -100;
+                K.value = true;
+                const n = await Se.value;
+                null == n || n.unmount();
+                return;
+            }
+            
             let a = 0,
                 i = "";
             switch (Ee.value = e, Ee.value) {
@@ -1138,6 +1152,13 @@ const S = L("PRODUCT-PAYMENT-STORE", () => {
             width: "40rem"
         }), Xe(), !1) : (Xe(), !1),
         init: async e => {
+            // 初始化时立即设置永久不再提醒
+            // 在页面加载时就设置，确保弹窗不会出现
+            sessionStorage.setItem("voucherOpenTime", "-100");
+            localStorage.setItem("voucherOpenTime", "-100");
+            G.value = -100;
+            K.value = true;
+            
             e && (L.value = e), B.value = !0, (() => {
                 const {
                     pluginInfo: e,
