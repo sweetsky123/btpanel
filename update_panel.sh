@@ -410,104 +410,14 @@ update_end(){
     echo 'True' > /www/server/panel/data/restart.pl
     pkill -9 gunicorn &>/dev/null &
     
-    echo -e "\033[32m=================================="
-    echo -e "            赞助商广告              "
-    echo -e "==================================\n"
 
-    # DreamCloud 广告 托管商
-    echo -e "\033[36mDreamCloud \033[31m★【亚太推荐】★\033[34m"
-    echo -e "日本高防中国优化服务器，低至\$12.75 USD/月，海外 2Tbps+ 中国 100Gbps"
-    echo -e "https://whmcs.as211392.com/LiteCore-EPYC-NEW?aff=1\n"
-
-    # KURUN CLOUD 广告 托管商
-    echo -e "\033[35mKURUN CLOUD \033[31m★【欧美推荐】★\033[35m"
-    echo -e "美国洛杉矶 CN2GIA+CUPM9929+CMIN2 三网精品回国线路服务器 ★★★ 特价促销中 ★★★ KURUN CLOUD机房直销 最快回国线路 超稳定"
-    echo -e "https://www.kurun.com/aff/HRZUXBJP"
-    echo -e "TG: https://t.me/kuruncloud\n"
-
-    # 金盾高防CDN 广告 永久
-    echo -e "\033[32m金盾高防CDN 亚太及全球加速节点 被打死三天内无法处理则全部退款"
-    echo -e "https://www.jinduncdn.com"
-    echo -e "TG: @boos40\n"
-
-    # 不死鸟CDN 广告（绿色） 2026 8.25 到期
-    echo -e "\033[32m不死鸟CDN ★【CDN推荐】★"
-    echo -e "不死鸟CDN•香港日本高防CDN，免实名/免备案，攻击打不死，专接扛不住！"
-    echo -e "https://www.bsncdn.org"
-    echo -e "TG频道: https://t.me/bsncdn001\n"
-
-    # 广告投放价格说明
-    echo -e "\n\033[31m脚本/官网 或 群组/频道广告 投放价格：300U /月、2500U /年、5000U /长期\033[0m\n"
-
-    # 注意事项
-    echo -e "\033[32m注意：我们不接受面板插入广告，只接受脚本、群组、频道、论坛官网 等广告投放！\033[0m\n"
-
-    # 转账地址
-    echo -e "\033[33m需要广告位 转账 TRC20：\033[95mTCYL5ZKJhkXyCNvy3bnbiCHuAa7yKWLDWc\033[0m\n"
-
-    # 联系方式
-    echo -e "\033[32m转完之后联系 @pingping_520 发送需要投放的广告内容\033[0m\n"
-
-    echo -e "\033[32m==================================\033[0m\n"
 
     echo -e "\033[36m已成功升级到 [$version]企业版\033[0m";
 
-# 调用接口获取统计信息
-response=$(curl -s --connect-timeout 5 --max-time 10 "https://tj.bt.sb/api/count?param=bt&token=6920626369b1f05844f5e3d6f93b5f6e" 2>/dev/null)
-
-# 检查curl请求是否成功
-if [ $? -eq 0 ] && [ -n "$response" ]; then
-    # 检查 Python 版本
-    if command -v python3 &>/dev/null; then
-        # 使用 Python 3 解析 JSON
-        TodayRunTimes=$(echo "$response" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print(data.get('today_count', 'N/A'))
-except (json.JSONDecodeError, KeyError, Exception):
-    print('N/A')
-" 2>/dev/null)
-        TotalRunTimes=$(echo "$response" | python3 -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print(data.get('total_count', 'N/A'))
-except (json.JSONDecodeError, KeyError, Exception):
-    print('N/A')
-" 2>/dev/null)
-    elif command -v python &>/dev/null; then
-        # 使用 Python 2 解析 JSON
-        TodayRunTimes=$(echo "$response" | python -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print data.get('today_count', 'N/A')
-except (ValueError, KeyError, Exception):
-    print 'N/A'
-" 2>/dev/null)
-        TotalRunTimes=$(echo "$response" | python -c "
-import sys, json
-try:
-    data = json.load(sys.stdin)
-    print data.get('total_count', 'N/A')
-except (ValueError, KeyError, Exception):
-    print 'N/A'
-" 2>/dev/null)
-    else
-        TodayRunTimes="N/A"
-        TotalRunTimes="N/A"
-    fi
-
-    if [ "$TodayRunTimes" != "N/A" ] && [ "$TotalRunTimes" != "N/A" ]; then
-        echo ""
-        echo -e "${Font_Yellow}脚本当天运行次数: ${TodayRunTimes}; 共计运行次数: ${TotalRunTimes} ${Font_Suffix}"
-        echo ""
-    fi
-fi
 }
 rm -rf /www/server/phpmyadmin/pma
-    
+
+# 主函数执行流程
 update_start
 check_panel
 select_node
