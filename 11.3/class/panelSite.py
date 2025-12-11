@@ -2821,10 +2821,14 @@ listener SSL443 {
         :param get:
         :return:
         """
+        # 去除广告
         try:
-            import panelPlugin
-            panelPlugin = panelPlugin.panelPlugin()
-            content = panelPlugin.get_cloud_list()["remarks"]["domain_panle"]
+            # 不再实际导入panelPlugin
+            #import panelPlugin
+            #panelPlugin = panelPlugin.panelPlugin()
+            #content = panelPlugin.get_cloud_list()["remarks"]["domain_panle"]
+            # 直接返回空结构，保持返回格式兼容
+            content = ''
         except:
             content = ''
         if content:
@@ -2840,6 +2844,17 @@ listener SSL443 {
         :param get:
         :return:
         """
+        # 去除广告
+        # 直接创建忽略文件
+        return public.returnMsg(True, '设置成功!')
+        try:
+            ignore_file = "{}/data/view_domain_title_status.pl".format(public.get_panel_path())
+            if not os.path.exists(ignore_file):
+                public.writeFile(ignore_file, "ignore")
+        except:
+            pass
+        return public.returnMsg(False, '')
+        """
         try:
             ignore_view_domain_title_path = "{}/data/view_domain_title_status.pl".format(public.get_panel_path())
             if not os.path.exists(ignore_view_domain_title_path):
@@ -2848,6 +2863,7 @@ listener SSL443 {
         except:
             public.print_log(public.get_error_info())
             return public.returnMsg(False, '设置失败，请检查权限!')
+        """
 
     def get_ssl_push_status(self, get, siteName=None, stype=None,ssl_status=None):
         if get:
