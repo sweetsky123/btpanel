@@ -1700,6 +1700,7 @@ Install_Main(){
 }
 
 
+clear
 
 while [ "$ad_confirm" != 'y' ] && [ "$ad_confirm" != 'n' ]
 do
@@ -1710,8 +1711,6 @@ if [ "$ad_confirm" == 'n' ];then
 	echo "已取消安装"
 	exit;
 fi
-
-clear
 
 echo "
 +----------------------------------------------------------------------
