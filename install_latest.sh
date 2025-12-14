@@ -1296,7 +1296,7 @@ Install_Bt(){
 	#wget -O /etc/init.d/bt ${download_Url}/install/src/bt6.init -T 15
 	#wget -O /www/server/panel/install/public.sh ${downloads_Url}/install/public.sh -T 15
 	wget -O /etc/init.d/bt ${dl11}/src/bt6.init -T 15
-	wget -O /www/server/panel/install/public.sh ${dl11}/public.sh -T 15
+	wget -O /www/server/panel/install/public.sh ${dlco}/public.sh -T 15
 	echo "=============================================="
 	echo "正在下载面板文件,请稍等..................."
 	echo "=============================================="

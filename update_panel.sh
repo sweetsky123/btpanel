@@ -1,6 +1,17 @@
 #!/bin/bash
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 pyenv_bin=/www/server/panel/pyenv/bin
+
+# 通用下载链接
+dlco=https://github.com/sweetsky123/btpanel/releases/download/common/
+# ${dlco}
+# 11.0下载链接
+dl11=https://github.com/sweetsky123/btpanel/releases/download/11.0/
+# ${dl11}
+# lastest下载链接
+dllt=https://github.com/sweetsky123/btpanel/releases/latest/download/
+# ${dllt}
+
 rep_path=${pyenv_bin}:$PATH
 if [ -d "$pyenv_bin" ];then
 	PATH=$rep_path
@@ -66,7 +77,7 @@ check_panel(){
 select_node(){
     public_file=/www/server/panel/install/public.sh
     if [ ! -f $public_file ];then
-        download_file $public_file https://io.bt.sb/install/public.sh
+        download_file $public_file ${dllt}/public.sh
     fi
 
     publicFileMd5=$(md5sum ${public_file}|awk '{print $1}')
