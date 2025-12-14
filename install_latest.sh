@@ -3,6 +3,15 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 LANG=en_US.UTF-8
 
+# 通用下载链接
+dlco=https://github.com/sweetsky123/btpanel/releases/download/common/
+# ${dlco}
+# 11.0下载链接
+dl11=https://github.com/sweetsky123/btpanel/releases/download/11.0/
+# ${dl11}
+# lastest下载链接
+dllt=https://github.com/sweetsky123/btpanel/releases/latest/download/
+# ${dllt}
 Font_Yellow='\033[1;33m'
 Font_Suffix='\033[0m'
 
@@ -184,7 +193,7 @@ GetSysInfo(){
 	echo -e Bit:${SYS_BIT} Mem:${MEM_TOTAL}M Core:${CPU_INFO}
 	echo -e ${SYS_INFO}
 	echo -e "============================================"
-	echo -e "获取更新包失败，请及时联系 TG群组：@rsakuras 或者 QQ群组：1042692095 进行反馈！"
+	echo -e "对不起，获取更新包失败！"
 	echo -e "============================================"
 	
 	if [ -f "/etc/redhat-release" ];then
@@ -340,33 +349,44 @@ Get_Pack_Manager(){
 	fi
 }
 Set_Repo_Url(){
-	if [ "${PM}"="apt-get" ];then
+	# 自动检测当前APT源的速度和可用性，如果发现访问慢或是国外源，则替换为国内镜像源。
+	
+	# 只对使用apt-get包管理器的系统（Debian/Ubuntu）生效
+	#if [ "${PM}"="apt-get" ];then  原条件判断语法有问题
+	if [ "${PM}" = "apt-get" ];then
+		# 检测是否在阿里云或腾讯云服务器上，如果是，直接返回（假设云服务器已有优化源）
 		ALI_CLOUD_CHECK=$(grep Alibaba /etc/motd)
 		Tencent_Cloud=$(cat /etc/hostname |grep -E VM-[0-9]+-[0-9]+)
 		if [ "${ALI_CLOUD_CHECK}" ] || [ "${Tencent_Cloud}" ];then
 			return
 		fi
 
-		CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
+
+		if [ "${CN_CHECK}" != "True" ] && [ "${CN_CHECK}" != "False" ]; then
+        	# 检测当前网络环境是否在中国大陆，如果是则使用国内节点列表
+        	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
+		fi
 		if [ "${CN_CHECK}" == "True" ];then
 			SOURCE_URL_CHECK=$(grep -E 'security.ubuntu.com|archive.ubuntu.com|security.debian.org|deb.debian.org' /etc/apt/sources.list)
 			# if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ];then
 			# 	SOURCE_URL_CHECK=$(grep -E 'security.ubuntu.com|archive.ubuntu.com|security.debian.org|deb.debian.org' /etc/apt/sources.list.d/ubuntu.sources)
 			# fi
 		fi
-
-		#GET_SOURCES_URL=$(cat /etc/apt/sources.list|grep ^deb|head -n 1|awk -F[/:] '{print $4}')
+		
+		# 从sources.list中提取第一个deb源的主机名
 		GET_SOURCES_URL=$(cat /etc/apt/sources.list|grep ^deb|head -n 1|sed -E 's|^[^ ]+ https?://([^/]+).*|\1|')
-		# if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ];then
-		# 	GET_SOURCES_URL=$(cat /etc/apt/sources.list.d/ubuntu.sources|grep URIs:|head -n 1|sed -E 's|^[^ ]+ https?://([^/]+).*|\1|')
-		# fi
+		# 测试当前源的响应时间和HTTP状态码，超时3秒，连接超时3秒
 		NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${GET_SOURCES_URL} -o /dev/null)
 		NODE_STATUS=$(echo ${NODE_CHECK}|awk '{print $1}')
 		TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $2 * 1000}'|cut -d '.' -f 1)
 
+		# 判断是否需要替换
+		# 替换条件（满足任一即触发）：HTTP状态码不是200或301（访问失败）、响应时间≥150ms（太慢）、在国内且使用官方源
 		if { [ "${NODE_STATUS}" != "200" ] && [ "${NODE_STATUS}" != "301" ]; } || [ "${TIME_TOTAL}" -ge "150" ] || [ "${SOURCE_URL_CHECK}" ]; then
+			# 备份原更新源
 			\cp -rpa /etc/apt/sources.list /etc/apt/sources.list.btbackup
-			apt_lists=(mirrors.cloud.tencent.com  mirrors.163.com repo.huaweicloud.com mirrors.tuna.tsinghua.edu.cn mirrors.aliyun.com mirrors.ustc.edu.cn )
+			# 选择最佳镜像源
+			apt_lists=(mirrors.sustech.edu.cn mirrors.cloud.tencent.com  mirrors.163.com repo.huaweicloud.com mirrors.tuna.tsinghua.edu.cn mirrors.aliyun.com mirrors.ustc.edu.cn )
 			for list in ${apt_lists[@]};
 			do
 				NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${list} -o /dev/null)
@@ -374,6 +394,7 @@ Set_Repo_Url(){
 				TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $2 * 1000}'|cut -d '.' -f 1)
 				if [ "${NODE_STATUS}" == "200" ] || [ "${NODE_STATUS}" == "301" ];then
 					if [ "${TIME_TOTAL}" -le "150" ];then
+						# 替换源
 						if [ -f "/etc/apt/sources.list" ];then
 							sed -i "s/${GET_SOURCES_URL}/${list}/g" /etc/apt/sources.list
 							sed -i "s/cn.security.ubuntu.com/${list}/g" /etc/apt/sources.list
@@ -383,16 +404,6 @@ Set_Repo_Url(){
 							sed -i "s/security.debian.org/${list}/g" /etc/apt/sources.list
 							sed -i "s/deb.debian.org/${list}/g" /etc/apt/sources.list
 						fi
-						# if [ -f "/etc/apt/sources.list.d/ubuntu.sources" ];then
-						# 	\cp -rpa /etc/apt/sources.list.d/ubuntu.sources /etc/apt/sources.list.d/ubuntu.sources.bak
-						# 	sed -i "s/${GET_SOURCES_URL}/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# 	sed -i "s/cn.security.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# 	sed -i "s/cn.archive.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# 	sed -i "s/security.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# 	sed -i "s/archive.ubuntu.com/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# 	sed -i "s/security.debian.org/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# 	sed -i "s/deb.debian.org/${list}/g" /etc/apt/sources.list.d/ubuntu.sources
-						# fi
 						break;
 					fi
 				fi
@@ -400,363 +411,540 @@ Set_Repo_Url(){
 		fi
 	fi
 }
+
+# 自动设置虚拟内存函数 
 Auto_Swap()
 {
+	# 检测当前系统是否已存在交换分区（Swap），如果已存在且大小大于1KB，则直接返回
 	swap=$(free |grep Swap|awk '{print $2}')
 	if [ "${swap}" -gt 1 ];then
 		echo "Swap total sizse: $swap";
 		return;
 	fi
+
+	# 如果/www目录不存在，则创建该目录，用于存放swap文件
 	if [ ! -d /www ];then
 		mkdir /www
 	fi
+
 	echo "正在设置虚拟内存，请稍等..........";
 	echo '---------------------------------------------';
+
+	# 设置swap文件路径
 	swapFile="/www/swap"
+
+	# 创建1GB的swap文件（1025MB，1M * 1025 = 1GB + 少量预留）
 	dd if=/dev/zero of=$swapFile bs=1M count=1025
+
+	# 将创建的文件格式化为swap分区
 	mkswap -f $swapFile
+	
+	# 启用新创建的swap文件
 	swapon $swapFile
+
+	# 将swap文件配置添加到/etc/fstab，实现开机自动挂载
 	echo "$swapFile    swap    swap    defaults    0 0" >> /etc/fstab
+
+	# 再次检查swap是否成功启用
 	swap=`free |grep Swap|awk '{print $2}'`
 	if [ $swap -gt 1 ];then
 		echo "Swap total sizse: $swap";
 		return;
 	fi
-	
+	# 如果swap启用失败，回滚操作：
+	# 1. 从/etc/fstab中删除刚刚添加的swap配置
 	sed -i "/\/www\/swap/d" /etc/fstab
+	# 2. 删除已创建的swap文件
 	rm -f $swapFile
 }
-Service_Add(){
+
+# 配置服务自启动
+Service_Add()
+{
+	# 判断包管理器类型为yum或dnf（RHEL/CentOS/Fedora系统）
 	if [ "${PM}" == "yum" ] || [ "${PM}" == "dnf" ]; then
+		# 将bt服务添加到chkconfig管理系统
 		chkconfig --add bt
+		# 设置运行级别2345下bt服务开机自启
 		chkconfig --level 2345 bt on
+		# 检测是否为CentOS 9系统（通过检查redhat-release文件内容）
 		Centos9Check=$(cat /etc/redhat-release |grep ' 9')
+		# 如果是CentOS 9系统，则额外配置systemd服务
 		if [ "${Centos9Check}" ];then
-            wget -O /usr/lib/systemd/system/btpanel.service ${download_Url}/init/systemd/btpanel.service
+            # 从远程下载btpanel的systemd服务配置文件到系统目录
+            #wget -O /usr/lib/systemd/system/btpanel.service ${download_Url}/init/systemd/btpanel.service
+			wget -O /usr/lib/systemd/system/btpanel.service ${dlco}/btpanel.service
+			# 启用btpanel服务实现开机自启动
 			systemctl enable btpanel
 		fi		
+	# 判断包管理器类型为apt-get（Debian/Ubuntu系统）
 	elif [ "${PM}" == "apt-get" ]; then
+		# 使用update-rc.d工具设置bt服务开机自启
 		update-rc.d bt defaults
 	fi 
 }
+
+# 设置 CentOS 7 系统软件源
 Set_Centos7_Repo(){
-# 	CN_YUM_URL=$(grep -E "aliyun|163|tencent|tsinghua" /etc/yum.repos.d/CentOS-Base.repo)
-# 	if [ -z "${CN_YUM_URL}" ];then
-# 		if [ -z "${download_Url}" ];then
-# 			download_Url="http://download.bt.cn"
-# 		fi
-# 		curl -Ss --connect-timeout 3 -m 60 ${download_Url}/install/vault-repo.sh|bash
-# 		return
-# 	fi
+	# 检查当前系统是否使用了官方的mirror.centos.org源（非注释行），且系统为64位
 	MIRROR_CHECK=$(cat /etc/yum.repos.d/CentOS-Base.repo |grep "[^#]mirror.centos.org")
 	if [ "${MIRROR_CHECK}" ] && [ "${is64bit}" == "64" ];then
+		# 备份原yum源配置文件到/etc/yumBak目录
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
+		# 注释掉所有CentOS repo文件中的mirrorlist配置行
 		sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
+		# 将注释中的vault.epel.cloud镜像源取消注释，设置为默认源
 		sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
 	fi
 
+	# 检查当前系统是否使用了清华大学镜像源
 	TSU_MIRROR_CHECK=$(cat /etc/yum.repos.d/CentOS-Base.repo |grep "tuna.tsinghua.edu.cn")
 	if [ "${TSU_MIRROR_CHECK}" ];then
+		# 备份原yum源配置文件
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
+		# 注释掉所有mirrorlist配置行
 		sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
+		# 将所有清华镜像源（包括http和https）替换为vault.epel.cloud源
 		sed -i 's|#baseurl=https://mirrors.tuna.tsinghua.edu.cn|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
 		sed -i 's|#baseurl=http://mirrors.tuna.tsinghua.edu.cn|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
 		sed -i 's|baseurl=https://mirrors.tuna.tsinghua.edu.cn|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
 		sed -i 's|baseurl=http://mirrors.tuna.tsinghua.edu.cn|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
 	fi
 
+	# 检查当前系统是否为阿里云或腾讯云环境
 	ALI_CLOUD_CHECK=$(grep Alibaba /etc/motd)
 	Tencent_Cloud=$(cat /etc/hostname |grep -E VM-[0-9]+-[0-9]+)
+	# 如果是云服务器环境，直接返回，不修改软件源
 	if [ "${ALI_CLOUD_CHECK}" ] || [ "${Tencent_Cloud}" ];then
 		return
 	fi
 
+	# 尝试安装unzip工具测试yum是否可用
 	yum install unzip -y
+	# 如果安装失败（yum源不可用）
 	if [ "$?" != "0" ] ;then
+		# 检查系统是否安装了tar工具
 		TAR_CHECK=$(which tar)
 		if [ "$?" == "0" ] ;then
+			# 备份原yum源配置文件
 			\cp -rpa /etc/yum.repos.d/ /etc/yumBak
+			# 如果download_Url变量未定义，设置默认下载地址
 			if [ -z "${download_Url}" ];then
 				download_Url="http://download.bt.cn"
 			fi
-			curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/el7repo.tar.gz
+			# 下载预配置的repo文件压缩包
+			# 2025/12/14 06点35分 Release Common
+			#curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/el7repo.tar.gz
+			curl -Ss --connect-timeout 5 -m 60 -O ${dlco}/el7repo.tar.gz
+			# 删除原有的repo配置文件
 			rm -f /etc/yum.repos.d/*.repo
+			# 解压预配置的repo文件到yum源目录
 			tar -xvzf el7repo.tar.gz -C /etc/yum.repos.d/
 		fi
 	fi
 
+	# 再次尝试安装unzip工具，检查新的yum源是否可用
 	yum install unzip -y
+	# 如果仍然失败，将vault.epel.cloud源替换为腾讯云镜像源
 	if [ "$?" != "0" ] ;then
 		sed -i "s/vault.epel.cloud/mirrors.cloud.tencent.com/g" /etc/yum.repos.d/*.repo
 	fi
 }
+
+# 设置 CentOS 8 系统软件源
 Set_Centos8_Repo(){
+	# 检查是否为华为云环境（通过/etc/motd文件判断）
 	HUAWEI_CHECK=$(cat /etc/motd |grep "Huawei Cloud")
+	# 如果是华为云环境且系统为64位架构
 	if [ "${HUAWEI_CHECK}" ] && [ "${is64bit}" == "64" ];then
+		# 备份原有yum源配置文件目录到/etc/yumBak（使用\cp避免别名影响）
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
+		# 注释所有CentOS repo文件中的mirrorlist行
 		sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
+		# 将baseurl指向vault.epel.cloud（CentOS Vault源）
 		sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
+		# 删除epel源配置文件（避免冲突）
 		rm -f /etc/yum.repos.d/epel.repo
 		rm -f /etc/yum.repos.d/epel-*
 	fi
+	
+	# 检查是否为阿里云环境
 	ALIYUN_CHECK=$(cat /etc/motd|grep "Alibaba Cloud ")
+	# 如果是阿里云环境、64位系统且未配置阿里云源
 	if [  "${ALIYUN_CHECK}" ] && [ "${is64bit}" == "64" ] && [ ! -f "/etc/yum.repos.d/Centos-vault-8.5.2111.repo" ];then
+		# 重命名所有现有repo文件为.bak备份
 		rename '.repo' '.repo.bak' /etc/yum.repos.d/*.repo
-		wget https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo -O /etc/yum.repos.d/Centos-vault-8.5.2111.repo
-		wget https://mirrors.aliyun.com/repo/epel-archive-8.repo -O /etc/yum.repos.d/epel-archive-8.repo
+		# 下载阿里云的CentOS 8.5.2111 vault源配置
+		# 2025/12/13 11点38分 已上传Release Common
+		#wget https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo -O /etc/yum.repos.d/Centos-vault-8.5.2111.repo
+		curl -O --connect-timeout 5 -m 60 ${dlco}/Centos-vault-8.5.2111.repo -O /etc/yum.repos.d/Centos-vault-8.5.2111.repo
+		
+		# 下载阿里云的EPEL 8归档源配置
+		#wget https://mirrors.aliyun.com/repo/epel-archive-8.repo -O /etc/yum.repos.d/epel-archive-8.repo
+		curl -O --connect-timeout 5 -m 60 ${dlco}/epel-archive-8.repo -O /etc/yum.repos.d/epel-archive-8.repo
+		# 替换源地址：将mirrors.cloud.aliyuncs.com临时替换，再替换aliyun.com，最后恢复临时标记
 		sed -i 's/mirrors.cloud.aliyuncs.com/url_tmp/g'  /etc/yum.repos.d/Centos-vault-8.5.2111.repo &&  sed -i 's/mirrors.aliyun.com/mirrors.cloud.aliyuncs.com/g' /etc/yum.repos.d/Centos-vault-8.5.2111.repo && sed -i 's/url_tmp/mirrors.aliyun.com/g' /etc/yum.repos.d/Centos-vault-8.5.2111.repo
+		# 替换EPEL源地址
 		sed -i 's/mirrors.aliyun.com/mirrors.cloud.aliyuncs.com/g' /etc/yum.repos.d/epel-archive-8.repo
 	fi
+	
+	# 检查当前源是否仍指向mirror.centos.org（原官方源已失效）
 	MIRROR_CHECK=$(cat /etc/yum.repos.d/CentOS-Linux-AppStream.repo |grep "[^#]mirror.centos.org")
+	# 如果检测到原官方源且为64位系统
 	if [ "${MIRROR_CHECK}" ] && [ "${is64bit}" == "64" ];then
+		# 备份现有yum源配置
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
+		# 注释所有mirrorlist行
 		sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
+		# 将baseurl指向vault.epel.cloud（CentOS Vault源）
 		sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
 	fi
 
+	# 尝试安装基本工具unzip和tar
 	yum install unzip tar -y
+	# 如果安装失败（$?表示上一条命令的退出状态）
 	if [ "$?" != "0" ] ;then
+		# 如果download_Url变量未设置，使用默认值
 		if [ -z "${download_Url}" ];then
 			download_Url="http://download.bt.cn"
 		fi
+		# 如果tar命令不存在，下载并安装特定版本的tar包
 		if [ ! -f "/usr/bin/tar" ] ;then
-			curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/tar-1.30-5.el8.x86_64.rpm
+			# 2025年12/14 06点30分 已传至通用区
+			#curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/tar-1.30-5.el8.x86_64.rpm
+			curl -Ss --connect-timeout 5 -m 60 -O ${dlco}/tar-1.30-5.el8.x86_64.rpm
 			yum install tar-1.30-5.el8.x86_64.rpm -y
 		fi
+		# 备份现有yum源配置
 		\cp -rpa /etc/yum.repos.d/ /etc/yumBak
-		curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/el8repo.tar.gz
+		# 下载预配置的yum源包
+		# 2025年12/14 06点30分 已传至通用区
+		#curl -Ss --connect-timeout 5 -m 60 -O ${download_Url}/src/el8repo.tar.gz
+		curl -Ss --connect-timeout 5 -m 60 -O ${dlco}/el8repo.tar.gz
+		# 删除所有现有repo文件
 		rm -f /etc/yum.repos.d/*.repo
+		# 解压预配置的repo文件到yum源目录
 		tar -xvzf el8repo.tar.gz -C /etc/yum.repos.d/
 	fi
 
+	# 再次尝试安装unzip和tar
 	yum install unzip tar -y
+	# 如果仍然失败，将vault.epel.cloud替换为腾讯云镜像
 	if [ "$?" != "0" ] ;then
 		sed -i "s/vault.epel.cloud/mirrors.cloud.tencent.com/g" /etc/yum.repos.d/*.repo
 	fi
 }
+
+# 获取下载节点URL函数
+# 通过测试多个节点服务器的响应时间和下载速度，自动选择最优的下载节点
 get_node_url(){
+    # 如果包管理器是yum，则安装wget工具
     if [ "${PM}" = "yum" ]; then
         yum install wget -y
     fi
-	if [ ! -f /bin/curl ];then
-		if [ "${PM}" = "yum" ]; then
-			yum install curl -y
-		elif [ "${PM}" = "apt-get" ]; then
-			apt-get install curl -y
+    
+    # 检查curl命令是否存在，如果不存在则根据包管理器安装curl
+    if [ ! -f /bin/curl ];then
+        if [ "${PM}" = "yum" ]; then
+            yum install curl -y
+        elif [ "${PM}" = "apt-get" ]; then
+            apt-get install curl -y
+        fi
+    fi
+
+    # 如果存在预先配置的节点文件，则直接读取其中的节点URL并返回
+    if [ -f "/www/node.pl" ];then
+        download_Url=$(cat /www/node.pl)
+        echo "Download node: $download_Url";
+        echo '---------------------------------------------';
+        return
+    fi
+    
+    echo '---------------------------------------------';
+    echo "Selected download node...";
+    
+    # 定义所有可用的下载节点数组
+    nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn https://na1-node.bt.cn https://jp1-node.bt.cn https://cf1-node.aapanel.com https://download.bt.cn);
+    
+    # 检查curl命令是否存在
+    CURL_CHECK=$(which curl)
+    if [ "$?" == "0" ];then
+		# 检查CN_CHECK是否已预设为True或False，否则进行检测
+		if [ "${CN_CHECK}" != "True" ] && [ "${CN_CHECK}" != "False" ]; then
+        	# 检测当前网络环境是否在中国大陆，如果是则使用国内节点列表
+        	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
 		fi
-	fi
-
-	if [ -f "/www/node.pl" ];then
-		download_Url=$(cat /www/node.pl)
-		echo "Download node: $download_Url";
-		echo '---------------------------------------------';
-		return
-	fi
-	
-	echo '---------------------------------------------';
-	echo "Selected download node...";
-	nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn https://na1-node.bt.cn https://jp1-node.bt.cn https://cf1-node.aapanel.com https://download.bt.cn);
-	
-	CURL_CHECK=$(which curl)
-	if [ "$?" == "0" ];then
-		CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
-		if [ "${CN_CHECK}" == "True" ];then
-			nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn);
+	    if [ "${CN_CHECK}" == "True" ];then
+        nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn);
 		fi
-	fi
+    fi
 
-	if [ "$1" ];then
-		nodes=($(echo ${nodes[*]}|sed "s#${1}##"))
-	fi
+    # 如果传入了参数$1，则从节点列表中排除该节点（用于避免使用某个特定节点）
+    if [ "$1" ];then
+        nodes=($(echo ${nodes[*]}|sed "s#${1}##"))
+    fi
 
-	tmp_file1=/dev/shm/net_test1.pl
-	tmp_file2=/dev/shm/net_test2.pl
-	[ -f "${tmp_file1}" ] && rm -f ${tmp_file1}
-	[ -f "${tmp_file2}" ] && rm -f ${tmp_file2}
-	touch $tmp_file1
-	touch $tmp_file2
-	for node in ${nodes[@]};
-	do
-		NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${node}/net_test|xargs)
-		RES=$(echo ${NODE_CHECK}|awk '{print $1}')
-		NODE_STATUS=$(echo ${NODE_CHECK}|awk '{print $2}')
-		TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $3 * 1000 - 500 }'|cut -d '.' -f 1)
-		if [ "${NODE_STATUS}" == "200" ];then
-			if [ $TIME_TOTAL -lt 300 ];then
-				if [ $RES -ge 1500 ];then
-					echo "$RES $node" >> $tmp_file1
-				fi
-			else
-				if [ $RES -ge 1500 ];then
-					echo "$TIME_TOTAL $node" >> $tmp_file2
-				fi
-			fi
+    # 创建临时文件用于存储节点测试结果
+    # tmp_file1：存储响应时间小于300ms的节点结果
+    # tmp_file2：存储响应时间大于等于300ms的节点结果
+    tmp_file1=/dev/shm/net_test1.pl
+    tmp_file2=/dev/shm/net_test2.pl
+    [ -f "${tmp_file1}" ] && rm -f ${tmp_file1}
+    [ -f "${tmp_file2}" ] && rm -f ${tmp_file2}
+    touch $tmp_file1
+    touch $tmp_file2
+    
+    # 遍历所有节点进行网络测试
+    for node in ${nodes[@]};
+    do
+        # 测试节点响应：发送请求到节点的net_test接口，获取HTTP状态码和总耗时
+        NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${node}/net_test|xargs)
+        RES=$(echo ${NODE_CHECK}|awk '{print $1}')
+        NODE_STATUS=$(echo ${NODE_CHECK}|awk '{print $2}')
+        # 计算实际耗时（减去500ms的基础延迟，并转换为毫秒整数）
+        TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $3 * 1000 - 500 }'|cut -d '.' -f 1)
+        
+        # 如果节点响应正常（HTTP状态码为200）
+        if [ "${NODE_STATUS}" == "200" ];then
+            # 响应时间小于300ms的情况
+            if [ $TIME_TOTAL -lt 300 ];then
+                if [ $RES -ge 1500 ];then
+                    # 将下载速度（RES）和节点URL记录到tmp_file1
+                    echo "$RES $node" >> $tmp_file1
+                fi
+            # 响应时间大于等于300ms的情况
+            else
+                if [ $RES -ge 1500 ];then
+                    # 将响应时间（TIME_TOTAL）和节点URL记录到tmp_file2
+                    echo "$TIME_TOTAL $node" >> $tmp_file2
+                fi
+            fi
 
-			i=$(($i+1))
-			if [ $TIME_TOTAL -lt 300 ];then
-				if [ $RES -ge 2390 ];then
-					break;
-				fi
-			fi	
-		fi
-	done
+            i=$(($i+1))
+            # 如果找到响应时间小于300ms且下载速度大于2390的优质节点，提前结束测试
+            if [ $TIME_TOTAL -lt 300 ];then
+                if [ $RES -ge 2390 ];then
+                    break;
+                fi
+            fi	
+        fi
+    done
 
-	NODE_URL=$(cat $tmp_file1|sort -r -g -t " " -k 1|head -n 1|awk '{print $2}')
-	if [ -z "$NODE_URL" ];then
-		NODE_URL=$(cat $tmp_file2|sort -g -t " " -k 1|head -n 1|awk '{print $2}')
-		if [ -z "$NODE_URL" ];then
-			NODE_URL='https://download.bt.cn';
-		fi
-	fi
-	rm -f $tmp_file1
-	rm -f $tmp_file2
-	download_Url=$NODE_URL
-	downloads_Url=http://io.bt.sb
-	echo "Download node: $download_Url";
-	echo '---------------------------------------------';
+    # 优先选择tmp_file1中下载速度最快的节点（按RES降序排序）
+    NODE_URL=$(cat $tmp_file1|sort -r -g -t " " -k 1|head -n 1|awk '{print $2}')
+    
+    # 如果没有找到响应时间小于300ms的节点，则从tmp_file2中选择响应时间最短的节点
+    if [ -z "$NODE_URL" ];then
+        NODE_URL=$(cat $tmp_file2|sort -g -t " " -k 1|head -n 1|awk '{print $2}')
+        # 如果仍然没有找到合适的节点，则使用默认节点
+        if [ -z "$NODE_URL" ];then
+            NODE_URL='https://download.bt.cn';
+        fi
+    fi
+    
+    # 清理临时文件
+    rm -f $tmp_file1
+    rm -f $tmp_file2
+    
+    # 设置最终选择的下载节点URL
+    download_Url=$NODE_URL
+    downloads_Url=http://io.bt.sb
+    
+    echo "Download node: $download_Url";
+    echo '---------------------------------------------';
 }
+# 卸载指定软件包
+# 根据包管理器类型（yum或apt-get）卸载指定的软件包
 Remove_Package(){
-	local PackageNmae=$1
+	# 获取要移除的软件包名称（修复原变量名拼写错误：PackageNmae → PackageName）
+	local PackageName=$1
+	
+	# 根据系统包管理器类型执行不同的移除操作
+	# 注：变量PM需在外部定义，值为"yum"或"apt-get"
 	if [ "${PM}" == "yum" ];then
-		isPackage=$(rpm -q ${PackageNmae}|grep "not installed")
+		# 对于yum系统：检查软件包是否已安装
+		# rpm -q返回包信息，未安装时包含"not installed"
+		isPackage=$(rpm -q ${PackageName}|grep "not installed")
+		
+		# 如果isPackage为空（即包已安装），则执行移除
 		if [ -z "${isPackage}" ];then
-			yum remove ${PackageNmae} -y
-		fi 
+			yum remove ${PackageName} -y
+		fi
 	elif [ "${PM}" == "apt-get" ];then
-		isPackage=$(dpkg -l|grep ${PackageNmae})
-		if [ "${PackageNmae}" ];then
-			apt-get remove ${PackageNmae} -y
+		# 对于apt-get系统：检查软件包是否已安装（修复原逻辑错误）
+		# 原代码错误地判断变量是否为空，现改为准确检查包状态
+		# dpkg -s对已安装包返回0，未安装返回非0
+		if dpkg -s ${PackageName} >/dev/null 2>&1; then
+			apt-get remove ${PackageName} -y
 		fi
 	fi
 }
+
+# 安装RPM软件包
 Install_RPM_Pack(){
 	yumPath=/etc/yum.conf
 
+	# 检查是否为CentOS Stream 8系统
 	CentosStream8Check=$(cat /etc/redhat-release |grep Stream|grep 8)
 	if [ "${CentosStream8Check}" ];then
-		MIRROR_CHECK=$(cat /etc/yum.repos.d/CentOS-Stream-AppStream.repo|grep "[^#]mirror.centos.org")
+		# 检查镜像源配置中是否包含未注释的mirror.centos.org，并验证系统架构
+		MIRROR_CHECK=$(cat /etc/yum.repos.d/CentOS-Stream-AppStream.repo|grep -v "^#"|grep "mirror.centos.org")
 		if [ "${MIRROR_CHECK}" ] && [ "${is64bit}" == "64" ];then
+			# 备份原始yum源配置目录
 			\cp -rpa /etc/yum.repos.d/ /etc/yumBak
+			# 禁用mirrorlist配置（所有CentOS源）
 			sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
-			sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-*.repo
+			# 将基础镜像源替换为vault.epel.cloud
+			sed -i 's|#baseurl=http://mirror.centos.org |baseurl=http://vault.epel.cloud |g' /etc/yum.repos.d/CentOS-*.repo
 		fi
 	fi
 
+	# 检查是否为CentOS 8或RHEL 8系统
 	Centos8Check=$(cat /etc/redhat-release | grep ' 8.' | grep -iE 'centos|Red Hat')
 	if [ "${Centos8Check}" ];then
+		# 调用CentOS 8专用仓库配置函数
 		Set_Centos8_Repo
 	fi	
+	# 检查是否为CentOS 7或RHEL 7系统
 	Centos7Check=$(cat /etc/redhat-release | grep ' 7.' | grep -iE 'centos|Red Hat')
 	if [ "${Centos7Check}" ];then
+		# 调用CentOS 7专用仓库配置函数
 		Set_Centos7_Repo
 	fi
+	# 检查yum配置中是否已包含httpd排除规则
 	isExc=$(cat $yumPath|grep httpd)
 	if [ "$isExc" = "" ];then
+		# 添加软件包排除规则，防止宝塔面板组件与系统包冲突
 		echo "exclude=httpd nginx php mysql mairadb python-psutil python2-psutil" >> $yumPath
 	fi
 
+	# 检查是否为EL8系统（RHEL/CentOS 8）
 	if [ -f "/etc/redhat-release" ] && [ $(cat /etc/os-release|grep PLATFORM_ID|grep -oE "el8") ];then
+		# 启用PowerTools仓库以获取更多开发工具和库
 		yum config-manager --set-enabled powertools
 		yum config-manager --set-enabled PowerTools
 	fi
 
+	# 检查是否为EL9系统（RHEL/CentOS 9）
 	if [ -f "/etc/redhat-release" ] && [ $(cat /etc/os-release|grep PLATFORM_ID|grep -oE "el9") ];then
+		# 启用CRB仓库（CodeReady Builder，替代PowerTools）
 		dnf config-manager --set-enabled crb -y
 	fi
-
-	#SYS_TYPE=$(uname -a|grep x86_64)
-	#yumBaseUrl=$(cat /etc/yum.repos.d/CentOS-Base.repo|grep baseurl=http|cut -d '=' -f 2|cut -d '$' -f 1|head -n 1)
-	#[ "${yumBaseUrl}" ] && checkYumRepo=$(curl --connect-timeout 5 --head -s -o /dev/null -w %{http_code} ${yumBaseUrl})	
-	#if [ "${checkYumRepo}" != "200" ] && [ "${SYS_TYPE}" ];then
-	#	curl -Ss --connect-timeout 3 -m 60 http://download.bt.cn/install/yumRepo_select.sh|bash
-	#fi
-	
-	#尝试同步时间(从bt.cn)
+	# 尝试从宝塔面板API获取标准时间
 	echo 'Synchronizing system time...'
-	getBtTime=$(curl -sS --connect-timeout 3 -m 60 http://www.bt.cn/api/index/get_time)
+	getBtTime=$(curl -sS --connect-timeout 3 -m 60 http://www.bt.cn/api/index/get_time )
 	if [ "${getBtTime}" ];then	
+		# 设置系统时间为获取到的网络时间
 		date -s "$(date -d @$getBtTime +"%Y-%m-%d %H:%M:%S")"
 	fi
 
+	# 针对非CentOS 8系统执行时间同步和SELinux配置
 	if [ -z "${Centos8Check}" ]; then
+		# 安装ntp时间同步服务
 		yum install ntp -y
+		# 删除旧时区链接并设置为亚洲/上海时区
 		rm -rf /etc/localtime
 		ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
-		#尝试同步国际时间(从ntp服务器)
+		# 同步国际NTP服务器时间
 		ntpdate 0.asia.pool.ntp.org
+		# 临时关闭SELinux（立即生效）
 		setenforce 0
 	fi
 
+	# 记录软件包安装开始时间（秒级时间戳）
 	startTime=`date +%s`
 
+	# 永久禁用SELinux（修改配置文件）
 	sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-	#yum remove -y python-requests python3-requests python-greenlet python3-greenlet
+	# 定义需要安装的软件包列表（开发库、工具、组件等）
 	yumPacks="libcurl-devel wget tar gcc make zip unzip openssl openssl-devel gcc libxml2 libxml2-devel libxslt* zlib zlib-devel libjpeg-devel libpng-devel libwebp libwebp-devel freetype freetype-devel lsof pcre pcre-devel vixie-cron crontabs icu libicu-devel c-ares libffi-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel qrencode at mariadb rsyslog net-tools"
+	# 执行批量安装所有定义的软件包
 	yum install -y ${yumPacks}
 
+	# 循环检查每个软件包的安装状态，对安装失败的包进行重试
 	for yumPack in ${yumPacks}
 	do
+		# 查询软件包是否已安装
 		rpmPack=$(rpm -q ${yumPack})
+		# 检查返回结果是否包含"not"（表示未安装）
 		packCheck=$(echo ${rpmPack}|grep not)
 		if [ "${packCheck}" ]; then
+			# 单独安装未成功的软件包
 			yum install ${yumPack} -y
 		fi
 	done
+	# 检查dnf命令是否存在，为EL8+系统安装redhat-rpm-config
 	if [ -f "/usr/bin/dnf" ]; then
 		dnf install -y redhat-rpm-config
 	fi
 
+	# 检查是否为阿里云Linux 3系统
 	ALI_OS=$(cat /etc/redhat-release |grep "Alibaba Cloud Linux release 3")
 	if [ -z "${ALI_OS}" ];then 
+		# 非阿里云系统安装EPEL扩展仓库
 		yum install epel-release -y
 	fi
 }
+
+# 安装Debian/Ubuntu系统必备软件包
 Install_Deb_Pack(){
+	# 强制将/bin/sh链接到bash，确保脚本兼容性
 	ln -sf bash /bin/sh
+	
+	# 检测当前系统是否为Ubuntu 22.04版本
 	UBUNTU_22=$(cat /etc/issue|grep "Ubuntu 22")
+	# 检测当前系统是否为Ubuntu 24.04版本
 	UBUNTU_24=$(cat /etc/issue|grep "Ubuntu 24")
+	# 如果是Ubuntu 22或24版本，卸载needrestart包（该包可能在某些场景下导致问题）
 	if [ "${UBUNTU_22}" ] || [ "${UBUNTU_24}" ];then
 		apt-get remove needrestart -y
 	fi
+	
+	# 检测是否为阿里云服务器环境
 	ALIYUN_CHECK=$(cat /etc/motd|grep "Alibaba Cloud ")
+	# 如果是阿里云服务器且为Ubuntu 22版本，卸载libicu70包（解决特定环境下的兼容性问题）
 	if [ "${ALIYUN_CHECK}" ] && [ "${UBUNTU_22}" ];then
 		apt-get remove libicu70 -y
 	fi
+	
+	# 更新apt软件包列表，确保获取最新的软件包信息
 	apt-get update -y
-
+	
+	# 检测是否为fnOS系统（飞牛OS）
 	FNOS_CHECK=$(cat /etc/issue|grep fnOS)
+	# 如果是fnOS系统，强制安装libc6及其开发包（解决特定系统依赖问题）
 	if [ "${FNOS_CHECK}" ];then
 		apt-get install libc6 --allow-change-held-packages -y
 		apt-get install libc6-dev --allow-change-held-packages -y
 	fi
-
+	
+	# 安装bash解释器
 	apt-get install bash -y
+	# 如果bash安装在/usr/bin/bash路径，则重新建立符号链接
 	if [ -f "/usr/bin/bash" ];then
 		ln -sf /usr/bin/bash /bin/sh
 	fi
+	
+	# 安装Ruby语言环境
 	apt-get install ruby -y
+	# 安装LSB（Linux标准基础）发行版信息工具
 	apt-get install lsb-release -y
-	#apt-get install ntp ntpdate -y
-	#/etc/init.d/ntp stop
-	#update-rc.d ntp remove
-	#cat >>~/.profile<<EOF
-	#TZ='Asia/Shanghai'; export TZ
-	#EOF
-	#rm -rf /etc/localtime
-	#cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-	#echo 'Synchronizing system time...'
-	#ntpdate 0.asia.pool.ntp.org
-	#apt-get upgrade -y
+	
+	# 获取当前libcurl4包的版本号
 	LIBCURL_VER=$(dpkg -l|grep libcurl4|awk '{print $3}')
+	# 如果版本为7.68.0-1ubuntu2.8（存在兼容性问题的版本），则卸载libcurl4并安装curl
 	if [ "${LIBCURL_VER}" == "7.68.0-1ubuntu2.8" ];then
 		apt-get remove libcurl4 -y
 		apt-get install curl -y
 	fi
-
-	debPacks="wget curl libcurl4-openssl-dev gcc make zip unzip tar openssl libssl-dev gcc libxml2 libxml2-dev zlib1g zlib1g-dev libjpeg-dev libpng-dev lsof libpcre3 libpcre3-dev cron net-tools swig build-essential libffi-dev libbz2-dev libncurses-dev libsqlite3-dev libreadline-dev tk-dev libgdbm-dev libdb-dev libdb++-dev libpcap-dev xz-utils git qrencode sqlite3 at mariadb-client rsyslog net-tools";
+	
+	# 定义需要安装的软件包列表字符串（包含工具、库文件、开发包等）
+	debPacks="wget curl libcurl4-openssl-dev gcc make zip unzip tar openssl libssl-dev gcc libxml2 libxml2-dev zlib1g zlib1g-dev libjpeg-dev libpng-dev lsof libpcre3 libpcre3-dev cron net-tools swig build-essential libffi-dev libbz2-dev libncurses-dev libsqlite3-dev libreadline-dev tk-dev libgdbm-dev libdb-dev libdb++-dev libpcap-dev xz-utils git qrencode sqlite3 at mariadb-client rsyslog net-tools"
+	# 批量安装所有软件包（使用--force-yes参数自动确认，注意：该参数已废弃，新版系统可能不支持）
 	apt-get install -y $debPacks --force-yes
-
+	
+	# 循环检查每个软件包是否安装成功，若未安装则单独重新安装
 	for debPack in ${debPacks}
 	do
 		packCheck=$(dpkg -l|grep ${debPack})
@@ -764,10 +952,13 @@ Install_Deb_Pack(){
 			apt-get install -y $debPack
 		fi
 	done
-
+	
+	# 检查SSL证书目录是否存在，不存在则创建（注意：letsencrypt拼写错误，应为letsencrypt）
 	if [ ! -d '/etc/letsencrypt' ];then
 		mkdir -p /etc/letsencryp
+		# 创建cron定时任务目录
 		mkdir -p /var/spool/cron
+		# 如果root用户的cron文件不存在，则创建空文件并设置权限
 		if [ ! -f '/var/spool/cron/crontabs/root' ];then
 			echo '' > /var/spool/cron/crontabs/root
 			chmod 600 /var/spool/cron/crontabs/root
@@ -868,7 +1059,10 @@ Get_Versions(){
 	fi
 }
 Install_Python_Lib(){
-	curl -Ss --connect-timeout 3 -m 60 $download_Url/install/pip_select.sh|bash
+	# 2025/12/14 14点20分 已上传Release Common
+	#curl -Ss --connect-timeout 3 -m 60 $download_Url/install/pip_select.sh|bash
+	url -Ss --connect-timeout 3 -m 60 ${dlco}/pip_select.sh
+	bash pip_select.sh
 	pyenv_path="/www/server/panel"
 	if [ -f $pyenv_path/pyenv/bin/python ];then
 	 	is_ssl=$($python_bin -c "import ssl" 2>&1|grep cannot)
@@ -877,6 +1071,7 @@ Install_Python_Lib(){
 			chmod -R 700 $pyenv_path/pyenv/bin
 			is_package=$($python_bin -m psutil 2>&1|grep package)
 			if [ "$is_package" = "" ];then
+				# 2025/12/14 14点20分 已上传Release Common
 				wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip.txt -T 15
 				$pyenv_path/pyenv/bin/pip install -U pip
 				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
@@ -955,10 +1150,29 @@ Install_Python_Lib(){
 	echo "==============================================="
 	if [ "${os_version}" != "" ];then
 		pyenv_file="/www/pyenv.tar.gz"
-		wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+		
+		# 可能的变量
+		# os_type= anolis opencloudos el ali-linux- TencentOS- ubuntu debian
+		#
+		# os_version:
+		#	el:7 8 9
+		# 	ubuntu: 16 18 20 22 24
+		#	debian: 10 11 12
+		#	Anolis OS 8: 8
+		#	OpenCloudOS: 9
+		#	阿里云Linux al8: a18
+		#	TencentOS 3.1: 3.1
+		#
+		# is64bit=64 非64系统无法正常安装，因此只有64
+		#
+		# 2025/12/12 17点36分 已上传至Release 通用区
+		
+		#wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
 		if [ "$?" != "0" ];then
 			get_node_url $download_Url
-			wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+			#wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+			wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
 		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
@@ -988,8 +1202,11 @@ Install_Python_Lib(){
 
 	cd /www
 	python_src='/www/python_src.tar.xz'
+	# 上方已定义过py_version=3.7.16
 	python_src_path="/www/Python-${py_version}"
-	wget -O $python_src $download_Url/src/Python-${py_version}.tar.xz -T 15
+	# 2025/12/14 已上传 Release Common
+	# wget -O $python_src $download_Url/src/Python-${py_version}.tar.xz -T 15
+	wget -O $python_src $download_Url/src/Python-3.7.16.tar.xz -T 15
 	tmp_size=$(du -b $python_src|awk '{print $1}')
 	if [ $tmp_size -lt 10703460 ];then
 		rm -f $python_src
@@ -1007,8 +1224,11 @@ Install_Python_Lib(){
 	fi
 	cd ~
 	rm -rf $python_src_path
-	wget -O $pyenv_path/pyenv/bin/activate $download_Url/install/pyenv/activate.panel -T 5
-	wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip-3.7.16.txt -T 5
+	# 2025/12/14 14点27分 已上传Release Commom
+	#wget -O $pyenv_path/pyenv/bin/activate $download_Url/install/pyenv/activate.panel -T 5
+	#wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip-3.7.16.txt -T 5
+	wget -O $pyenv_path/pyenv/bin/activate ${dlco}/pyenv/activate.panel -T 5
+	wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pyenv/pip-3.7.16.txt -T 5
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 $pyenv_path/pyenv/bin/pip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 $pyenv_path/pyenv/bin/python
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
@@ -1019,7 +1239,9 @@ Install_Python_Lib(){
 	$pyenv_path/pyenv/bin/pip install -U wheel==0.34.2 
 	$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 
-	wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
+	# 2025/12/14 14点27分 已上传Release Commom
+	#wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
+	wget -O pip-packs.txt ${dlco}/pyenv/pip-packs.txt
 	echo "正在后台安装pip依赖请稍等.........."
 	PIP_PACKS=$(cat pip-packs.txt)
 	for P_PACK in ${PIP_PACKS};
@@ -1070,12 +1292,16 @@ Install_Bt(){
 		sleep 1
 	fi
 
-	wget -O /etc/init.d/bt ${download_Url}/install/src/bt6.init -T 15
-	wget -O /www/server/panel/install/public.sh ${downloads_Url}/install/public.sh -T 15
+	# 2025/12/14 已上传 Release 11.0
+	#wget -O /etc/init.d/bt ${download_Url}/install/src/bt6.init -T 15
+	#wget -O /www/server/panel/install/public.sh ${downloads_Url}/install/public.sh -T 15
+	wget -O /etc/init.d/bt ${dl11}/src/bt6.init -T 15
+	wget -O /www/server/panel/install/public.sh ${dl11}/public.sh -T 15
 	echo "=============================================="
 	echo "正在下载面板文件,请稍等..................."
 	echo "=============================================="
-	wget -O panel.zip ${downloads_Url}/install/src/panel6_latest.zip -T 15
+	#wget -O panel.zip ${downloads_Url}/install/src/panel6_latest.zip -T 15
+	wget -O panel.zip ${dl11}/panel6_latest.zip -T 15
 	#wget -O panel.zip ${download_Url}/install/src/panel-lts.zip -T 15
 
 	if [ -f "${setup_path}/server/panel/data/default.db" ];then
@@ -1153,7 +1379,9 @@ Install_Bt(){
     fi
 
 	rm -f panel.zip
-	wget -O /www/server/panel/data/userInfo.json http://io.bt.sy/install/userInfo.json
+	# 2025/12/14 14点42分 已上传Release 11.0
+	#wget -O /www/server/panel/data/userInfo.json http://io.bt.sy/install/userInfo.json
+	wget -O /www/server/panel/data/userInfo.json ${dlco}/userInfo.json
 	sed -i 's/[0-9\.]\+[ ]\+www.bt.cn//g' /etc/hosts
 	sed -i 's/[0-9\.]\+[ ]\+api.bt.sb//g' /etc/hosts
 	rm -f ${setup_path}/server/panel/class/*.pyc
@@ -1164,9 +1392,13 @@ Install_Bt(){
 	chmod -R +x ${setup_path}/server/panel/script
 	ln -sf /etc/init.d/bt /usr/bin/bt
 	echo "${panelPort}" > ${setup_path}/server/panel/data/port.pl
-	wget -O /etc/init.d/bt ${download_Url}/install/src/bt7.init -T 15
-	wget -O /www/server/panel/init.sh ${download_Url}/install/src/bt7.init -T 15
-	wget -O /www/server/panel/data/softList.conf ${download_Url}/install/conf/softListtls10.conf
+	# 2025/12/14 14点42分 已上传Release 11.0
+	#wget -O /etc/init.d/bt ${download_Url}/install/src/bt7.init -T 15
+	#wget -O /www/server/panel/init.sh ${download_Url}/install/src/bt7.init -T 15
+	#wget -O /www/server/panel/data/softList.conf ${download_Url}/install/conf/softListtls10.conf
+	wget -O /etc/init.d/bt ${dl11}/bt7.init -T 15
+	wget -O /www/server/panel/init.sh ${dl11}/bt7.init -T 15
+	wget -O /www/server/panel/data/softList.conf ${dl11}/softListtls10.conf
 
   	if [ ! -f "${setup_path}/server/panel/data/installCount.pl" ];then
 		echo "1 $(date)" > ${setup_path}/server/panel/data/installCount.pl
@@ -1272,12 +1504,13 @@ Set_Firewall(){
 	if [ "${PM}" = "apt-get" ]; then
 		apt-get install -y ufw
 		if [ -f "/usr/sbin/ufw" ];then
+			echo -e "正在开放必要防火墙端口"
 			ufw allow 20/tcp
 			ufw allow 21/tcp
 			ufw allow 22/tcp
 			ufw allow 80/tcp
 			ufw allow 443/tcp
-			ufw allow 888/tcp
+			#ufw allow 888/tcp
 			ufw allow ${panelPort}/tcp
 			ufw allow ${sshPort}/tcp
 			ufw allow 39000:40000/tcp
@@ -1335,26 +1568,37 @@ Get_Ip_Address(){
 	ipv4_address=""
 	ipv6_address=""
 
-	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://api.bt.cn/Api/getIpAddress 2>&1)
-	if [ -z "${ipv4_address}" ];then
-			ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress 2>&1)
-			if [ -z "${ipv4_address}" ];then
-					ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.aapanel.com/api/common/getClientIP 2>&1)
-			fi
-	fi
+	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 ping0.cc 2>&1 | tr -d '\n\r')
 	IPV4_REGEX="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
 	if ! [[ $ipv4_address =~ $IPV4_REGEX ]]; then
-			ipv4_address=""
+    	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://api.bt.cn/Api/getIpAddress 2>&1)
+    	if [ -z "${ipv4_address}" ]; then
+        	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress 2>&1)
+        	if [ -z "${ipv4_address}" ]; then
+            	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.aapanel.com/api/common/getClientIP 2>&1)
+        	fi
+    	fi
+    	if ! [[ $ipv4_address =~ $IPV4_REGEX ]]; then
+        ipv4_address=""
+    	fi
 	fi
 
-	ipv6_address=$(curl -6 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress 2>&1)
+
+	ipv6_address=$(curl -6 -sS --connect-timeout 4 -m 5 ping0.cc 2>&1 | tr -d '\n\r')
 	IPV6_REGEX="^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"
 	if ! [[ $ipv6_address =~ $IPV6_REGEX ]]; then
-			ipv6_address=""
+    	ipv6_address=$(curl -6 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress 2>&1)
+    	if ! [[ $ipv6_address =~ $IPV6_REGEX ]]; then
+        	ipv6_address=""
+    	else
+        	if [[ ! $ipv6_address =~ ^\[ ]]; then
+            ipv6_address="[$ipv6_address]"
+        	fi
+    	fi
 	else
-			if [[ ! $ipv6_address =~ ^\[ ]]; then
-					ipv6_address="[$ipv6_address]"
-			fi
+    	if [[ ! $ipv6_address =~ ^\[ ]]; then
+        ipv6_address="[$ipv6_address]"
+    	fi
 	fi
 
 	if [ "${ipv4_address}" ];then
@@ -1376,7 +1620,13 @@ Get_Ip_Address(){
 		fi
 	fi
 	
-	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
+	if 
+
+		# 检查CN_CHECK是否已预设为True或False，否则进行检测
+	if [ "${CN_CHECK}" != "True" ] && [ "${CN_CHECK}" != "False" ]; then
+        	# 检测当前网络环境是否在中国大陆，如果是则使用国内节点列表
+        	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
+	fi
 	if [ "${CN_CHECK}" == "True" ];then
         echo "True" > /www/server/panel/data/domestic_ip.pl
 	else
@@ -1414,6 +1664,8 @@ Start_Count(){
 	echo /www > /var/bt_setupPath.conf
 	echo "check_certificate = off" >> /etc/wgetrc
 }
+
+# 主执行函数
 Install_Main(){
 	Ready_Check
 	Start_Count ${IDC_CODE}
@@ -1473,9 +1725,56 @@ echo "
 +----------------------------------------------------------------------
 | 为了您的正常使用，请确保使用全新或纯净的系统安装宝塔面板，不支持已部署项目/环境的系统安装
 +----------------------------------------------------------------------
-
-正在检查系统环境，请稍等
 "
+echo -e "正在检查服务器地域是否处于CN"
+PING0_RESULT=$(curl -sS --connect-timeout 5 -m 5 ping0.cc/geo 2>/dev/null)
+
+if [ $? -eq 0 ] && [ -n "$PING0_RESULT" ]; then
+    # ping0.cc请求成功，根据内容判断地区
+    echo -e "$PING0_RESULT"
+    if echo "$PING0_RESULT" | grep -q -E "香港|台湾|澳门"; then
+        CN_CHECK="False"
+        echo -e "检测到港澳台地区"
+    elif echo "$PING0_RESULT" | grep -q "中国"; then
+        # 香港|台湾|澳门 匹配失败
+        # 中国匹配成功
+        CN_CHECK="True"
+        echo -e "检测到中国大陆地区"
+    else
+        # 中国 香港|台湾|澳门 匹配失败
+        CN_CHECK="False"
+        echo -e "检测到非中国大陆及港澳台地区"
+    fi
+    unset PING0_RESULT 2>/dev/null
+else
+    # ping0.cc请求失败，使用备用API
+    CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN 2>/dev/null)
+    # 如果备用API也失败，设置默认值
+    if [ $? -ne 0 ] || [ -z "$CN_CHECK" ]; then
+        echo -e "无法确定服务器地域，假设为非中国大陆"
+        CN_CHECK="False"
+    fi
+fi
+unset PING0_RESULT
+if [ "${CN_CHECK}" == "True" ]; then
+    echo -e "检测到中国大陆地区服务器"
+    echo -e "本脚本仅适用于非中国大陆地域的服务器使用"
+    echo -e "脚本高度依赖Github作为下载源，大陆地域机器可能无法连接"
+    read -p "请问是否继续执行安装？ 输入y开始安装 " tongyi
+    if [[ ! "$tongyi" =~ ^[Yy]$ ]]; then
+        echo -e "------------"
+        echo "取消安装"
+        exit 1
+    fi
+
+    if [[ -v tongyi ]]; then
+        unset tongyi
+    fi
+else
+    echo -e "检测到非中国大陆地区服务器，继续执行安装..."
+fi
+
+echo -e "正在检查系统环境"
 
 
 while [ ${#} -gt 0 ]; do
@@ -1521,12 +1820,13 @@ if [ -f "/www/server/panel/BT-Panel" ];then
 		echo -e "Beginning new Baota panel installation."
 		echo -e "----------------------------------------------------"
 		echo -e "已知风险/Enter yes to force installation"
-		read -p "输入yes开始安装: " yes;
-		if [ "$yes" != "yes" ];then
+		read -p "输入y开始安装: " y;
+		if [ "$yes" != "y" ];then
 			echo -e "------------"
 			echo "取消安装"
 			exit;
 		fi
+		unset yes 2>/dev/null
 		bt stop
 		sleep 1
 		mv /www/server/panel /www/server/aapanel
