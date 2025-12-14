@@ -334,7 +334,7 @@ update_panel(){
     chattr -i /www/server/panel/data/userInfo.json
     dsize=$(du -b /tmp/panel.zip|awk '{print $1}')
     if [ $dsize -lt 10240 ];then
-        echo "获取更新包失败，请及时联系 TG群组：@rsakuras 或者 QQ群组：1042692095 进行反馈！"
+        echo "获取更新包失败！"
         exit;
     fi
     unzip -o /tmp/panel.zip -d $setup_path/server/ > /dev/null 2>&1

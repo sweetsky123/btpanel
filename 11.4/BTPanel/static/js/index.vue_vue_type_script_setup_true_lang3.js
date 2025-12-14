@@ -1,0 +1,7 @@
+import{n as s,I as t}from"./utils-lib.js?v=1765533662";import{c as a,g as e,x as r,y as l,A as n,B as o,z as i,e as p,G as c,b2 as m}from"./base-lib.js?v=1765533662";import{a as y,p as d}from"./useMethod5.js?v=1765533662";const u={class:"content-mask"},v={class:"mr-8px"},x={key:0},k={key:1},_=a({__name:"index",props:{type:{default:""}},setup(a){const _=a,b=e(()=>{var s;return"PgSql"===_.type?"pgsql_manager":null==(s=_.type)?void 0:s.toLowerCase()}),g=e(()=>"".concat("SqlServer"!==_.type?"当前未安装".concat(_.type,"环境/远程数据库"):"当前未添加远程数据库")),q=()=>{s({title:"MySQL 接入确认",area:"46rem",showFooter:!0,confirmText:"确认接入",component:()=>t(()=>import("./read-local-mysql.js?v=1765533662"),__vite__mapDeps([]),import.meta.url)})};return(s,t)=>{const e=m;return r(),l("div",u,[t[2]||(t[2]=n("i",{class:"text-orange !text-[2.2rem] svgtofont-el-warning mr-4px"},null,-1)),n("span",v,o(i(g)),1),n("span",{class:"bt-link",onClick:t[0]||(t[0]=(...s)=>i(y)&&i(y)(...s))}," 添加远程数据库 "),"Mysql"===a.type?(r(),l("div",x,[p(e,{direction:"vertical",class:"!mr-2px"}),n("span",{class:"bt-link",onClick:q}," 读取本地Mysql ")])):c("",!0),"SqlServer"!==a.type?(r(),l("div",k,[p(e,{direction:"vertical",class:"!mr-2px"}),n("span",{class:"bt-link",onClick:t[1]||(t[1]=s=>i(d)(i(b)||""))}," 安装"+o(a.type)+"环境 ",1)])):c("",!0)])}}});export{_};
+function __vite__mapDeps(indexes) {
+  if (!__vite__mapDeps.viteFileDeps) {
+    __vite__mapDeps.viteFileDeps = []
+  }
+  return indexes.map((i) => __vite__mapDeps.viteFileDeps[i])
+}

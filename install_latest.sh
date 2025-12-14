@@ -1740,6 +1740,7 @@ if [ $? -eq 0 ] && [ -n "$PING0_RESULT" ]; then
     else
         # 中国 香港|台湾|澳门 匹配失败
         CN_CHECK="False"
+		echo -e ""
         echo -e "检测到非中国大陆及港澳台地区"
     fi
     unset PING0_RESULT 2>/dev/null
