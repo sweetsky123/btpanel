@@ -1061,7 +1061,7 @@ Get_Versions(){
 Install_Python_Lib(){
 	# 2025/12/14 14点20分 已上传Release Common
 	#curl -Ss --connect-timeout 3 -m 60 $download_Url/install/pip_select.sh|bash
-	url -Ss --connect-timeout 3 -m 60 ${dlco}/pip_select.sh
+	curl -Ss --connect-timeout 3 -m 60 ${dlco}/pip_select.sh
 	bash pip_select.sh
 	pyenv_path="/www/server/panel"
 	if [ -f $pyenv_path/pyenv/bin/python ];then
@@ -1072,7 +1072,7 @@ Install_Python_Lib(){
 			is_package=$($python_bin -m psutil 2>&1|grep package)
 			if [ "$is_package" = "" ];then
 				# 2025/12/14 14点20分 已上传Release Common
-				wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip.txt -T 15
+				wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip.txt -T 15
 				$pyenv_path/pyenv/bin/pip install -U pip
 				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 				$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
@@ -1227,8 +1227,8 @@ Install_Python_Lib(){
 	# 2025/12/14 14点27分 已上传Release Commom
 	#wget -O $pyenv_path/pyenv/bin/activate $download_Url/install/pyenv/activate.panel -T 5
 	#wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip-3.7.16.txt -T 5
-	wget -O $pyenv_path/pyenv/bin/activate ${dlco}/pyenv/activate.panel -T 5
-	wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pyenv/pip-3.7.16.txt -T 5
+	wget -O $pyenv_path/pyenv/bin/activate ${dlco}/activate.panel -T 5
+	wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip-3.7.16.txt -T 5
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 $pyenv_path/pyenv/bin/pip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 $pyenv_path/pyenv/bin/python
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
@@ -1241,7 +1241,7 @@ Install_Python_Lib(){
 
 	# 2025/12/14 14点27分 已上传Release Commom
 	#wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
-	wget -O pip-packs.txt ${dlco}/pyenv/pip-packs.txt
+	wget -O pip-packs.txt ${dlco}/pip-packs.txt
 	echo "正在后台安装pip依赖请稍等.........."
 	PIP_PACKS=$(cat pip-packs.txt)
 	for P_PACK in ${PIP_PACKS};
@@ -1563,7 +1563,7 @@ Set_Firewall(){
 }
 Get_Ip_Address(){
 	getIpAddress=""
-	#getIpAddress=$(curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress)
+	#getIpAddress=$(curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress )
 
 	ipv4_address=""
 	ipv6_address=""
@@ -1571,11 +1571,11 @@ Get_Ip_Address(){
 	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 ping0.cc 2>&1 | tr -d '\n\r')
 	IPV4_REGEX="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
 	if ! [[ $ipv4_address =~ $IPV4_REGEX ]]; then
-    	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://api.bt.cn/Api/getIpAddress 2>&1)
+    	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://api.bt.cn/Api/getIpAddress  2>&1)
     	if [ -z "${ipv4_address}" ]; then
-        	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress 2>&1)
+        	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress  2>&1)
         	if [ -z "${ipv4_address}" ]; then
-            	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.aapanel.com/api/common/getClientIP 2>&1)
+            	ipv4_address=$(curl -4 -sS --connect-timeout 4 -m 5 https://www.aapanel.com/api/common/getClientIP  2>&1)
         	fi
     	fi
     	if ! [[ $ipv4_address =~ $IPV4_REGEX ]]; then
@@ -1587,7 +1587,7 @@ Get_Ip_Address(){
 	ipv6_address=$(curl -6 -sS --connect-timeout 4 -m 5 ping0.cc 2>&1 | tr -d '\n\r')
 	IPV6_REGEX="^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$"
 	if ! [[ $ipv6_address =~ $IPV6_REGEX ]]; then
-    	ipv6_address=$(curl -6 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress 2>&1)
+    	ipv6_address=$(curl -6 -sS --connect-timeout 4 -m 5 https://www.bt.cn/Api/getIpAddress  2>&1)
     	if ! [[ $ipv6_address =~ $IPV6_REGEX ]]; then
         	ipv6_address=""
     	else
@@ -1613,19 +1613,17 @@ Get_Ip_Address(){
 		if [ -z "${isHosts}" ];then
 			echo "" >> /etc/hosts
 			echo "116.213.43.206 www.bt.cn" >> /etc/hosts
-			getIpAddress=$(curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress)
+			getIpAddress=$(curl -sS --connect-timeout 10 -m 60 https://www.bt.cn/Api/getIpAddress )
 			if [ -z "${getIpAddress}" ];then
 				sed -i "/bt.cn/d" /etc/hosts
 			fi
 		fi
 	fi
 	
-	if 
-
-		# 检查CN_CHECK是否已预设为True或False，否则进行检测
+	# 检查CN_CHECK是否已预设为True或False，否则进行检测
 	if [ "${CN_CHECK}" != "True" ] && [ "${CN_CHECK}" != "False" ]; then
         	# 检测当前网络环境是否在中国大陆，如果是则使用国内节点列表
-        	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
+        	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN )
 	fi
 	if [ "${CN_CHECK}" == "True" ];then
         echo "True" > /www/server/panel/data/domestic_ip.pl
@@ -1650,7 +1648,7 @@ Get_Ip_Address(){
 	if [ "${getIpAddress}" != "SERVER_IP" ];then
 		echo "${getIpAddress}" > ${setup_path}/server/panel/data/iplist.txt
 	fi
-	LOCAL_IP=$(ip addr | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -E -v "^127\.|^255\.|^0\." | head -n 1)
+	LOCAL_IP=$(ip addr show scope global | grep -E -o 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | awk '{print $2}' | head -n 1)
 }
 Setup_Count(){
 	if [ "$1" != "" ];then
