@@ -144,7 +144,10 @@ panelPort=$(expr $RANDOM % 55535 + 10000)
 Ready_Check(){
     WWW_DISK_SPACE=$(df |grep /www|awk '{print $4}')
     ROOT_DISK_SPACE=$(df |grep /$|awk '{print $4}')
- 
+	
+	echo -e "============================================"
+	echo -e "正在检查磁盘剩余空间"
+	echo -e "============================================"
    if [ "${ROOT_DISK_SPACE}" -le 412000 ];then
 	df -h
         echo -e "系统盘剩余空间不足400M 无法继续安装宝塔面板！"
@@ -196,6 +199,9 @@ GetSysInfo(){
 	echo -e "对不起，获取更新包失败！"
 	echo -e "============================================"
 	
+	echo -e "============================================"
+	echo -e "检查系统类别"
+	echo -e "============================================"
 	if [ -f "/etc/redhat-release" ];then
 		Centos7Check=$(cat /etc/redhat-release | grep ' 7.' | grep -iE 'centos')
 		echo -e "============================================"
@@ -307,6 +313,9 @@ Set_Ssl(){
     fi
 }
 Add_lib_Install(){
+	echo -e "============================================"
+	echo -e "正在检测操作系统发行版本"
+	echo -e "============================================"
 	if [ -f "/etc/os-release" ];then
 		. /etc/os-release
 		OS_V=${VERSION_ID%%.*}
@@ -328,7 +337,9 @@ Add_lib_Install(){
 	fi
 
 	X86_CHECK=$(uname -m|grep x86_64)
-
+	echo -e "============================================"
+	echo -e "正在检测软件包管理系统版本"
+	echo -e "============================================"
 	if [ "${OS_NAME}" ] && [ "${X86_CHECK}" ];then
 		if [ "${PM}" = "yum" ]; then
 			mtype="1"
@@ -350,7 +361,9 @@ Get_Pack_Manager(){
 }
 Set_Repo_Url(){
 	# 自动检测当前APT源的速度和可用性，如果发现访问慢或是国外源，则替换为国内镜像源。
-	
+	echo -e "============================================"
+	echo -e "检测更新源的速度和可用性"
+	echo -e "============================================"
 	# 只对使用apt-get包管理器的系统（Debian/Ubuntu）生效
 	#if [ "${PM}"="apt-get" ];then  原条件判断语法有问题
 	if [ "${PM}" = "apt-get" ];then
@@ -358,6 +371,7 @@ Set_Repo_Url(){
 		ALI_CLOUD_CHECK=$(grep Alibaba /etc/motd)
 		Tencent_Cloud=$(cat /etc/hostname |grep -E VM-[0-9]+-[0-9]+)
 		if [ "${ALI_CLOUD_CHECK}" ] || [ "${Tencent_Cloud}" ];then
+			echo -e "检测到为阿里云或腾讯云机器，跳过优选"
 			return
 		fi
 
@@ -473,7 +487,7 @@ Service_Add()
 		if [ "${Centos9Check}" ];then
             # 从远程下载btpanel的systemd服务配置文件到系统目录
             #wget -O /usr/lib/systemd/system/btpanel.service ${download_Url}/init/systemd/btpanel.service
-			wget -O /usr/lib/systemd/system/btpanel.service ${dlco}/btpanel.service
+			wget -q --show-progress -O /usr/lib/systemd/system/btpanel.service ${dlco}/btpanel.service
 			# 启用btpanel服务实现开机自启动
 			systemctl enable btpanel
 		fi		
@@ -643,115 +657,117 @@ get_node_url(){
         yum install wget -y
     fi
     
-    # 检查curl命令是否存在，如果不存在则根据包管理器安装curl
+    # 检查curl命令是否存在，如果不存在则根据包管理器安装curl wget
     if [ ! -f /bin/curl ];then
         if [ "${PM}" = "yum" ]; then
             yum install curl -y
         elif [ "${PM}" = "apt-get" ]; then
             apt-get install curl -y
+			apt-get install wget -y
         fi
     fi
 
+	echo -e "跳过选择节点"
     # 如果存在预先配置的节点文件，则直接读取其中的节点URL并返回
-    if [ -f "/www/node.pl" ];then
-        download_Url=$(cat /www/node.pl)
-        echo "Download node: $download_Url";
-        echo '---------------------------------------------';
-        return
-    fi
+    #if [ -f "/www/node.pl" ];then
+        #download_Url=$(cat /www/node.pl)
+        #echo "Download node: $download_Url";
+        #echo '---------------------------------------------';
+        #return
+    #fi
     
-    echo '---------------------------------------------';
-    echo "Selected download node...";
+    #echo '---------------------------------------------';
+    #echo "Selected download node...";
     
     # 定义所有可用的下载节点数组
-    nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn https://na1-node.bt.cn https://jp1-node.bt.cn https://cf1-node.aapanel.com https://download.bt.cn);
+    #nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn https://na1-node.bt.cn https://jp1-node.bt.cn https://cf1-node.aapanel.com https://download.bt.cn);
     
     # 检查curl命令是否存在
-    CURL_CHECK=$(which curl)
-    if [ "$?" == "0" ];then
+    #CURL_CHECK=$(which curl)
+    #if [ "$?" == "0" ];then
 		# 检查CN_CHECK是否已预设为True或False，否则进行检测
-		if [ "${CN_CHECK}" != "True" ] && [ "${CN_CHECK}" != "False" ]; then
+		#if [ "${CN_CHECK}" != "True" ] && [ "${CN_CHECK}" != "False" ]; then
         	# 检测当前网络环境是否在中国大陆，如果是则使用国内节点列表
-        	CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
-		fi
-	    if [ "${CN_CHECK}" == "True" ];then
-        nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn);
-		fi
-    fi
+        	#CN_CHECK=$(curl -sS --connect-timeout 10 -m 10 https://api.bt.cn/api/isCN)
+		#fi
+	    #if [ "${CN_CHECK}" == "True" ];then
+        #nodes=(https://dg2.bt.cn https://download.bt.cn https://ctcc1-node.bt.cn https://cmcc1-node.bt.cn https://ctcc2-node.bt.cn https://hk1-node.bt.cn);
+		#fi
+    #fi
 
     # 如果传入了参数$1，则从节点列表中排除该节点（用于避免使用某个特定节点）
-    if [ "$1" ];then
-        nodes=($(echo ${nodes[*]}|sed "s#${1}##"))
-    fi
+    #if [ "$1" ];then
+        #nodes=($(echo ${nodes[*]}|sed "s#${1}##"))
+    #fi
 
     # 创建临时文件用于存储节点测试结果
     # tmp_file1：存储响应时间小于300ms的节点结果
     # tmp_file2：存储响应时间大于等于300ms的节点结果
-    tmp_file1=/dev/shm/net_test1.pl
-    tmp_file2=/dev/shm/net_test2.pl
-    [ -f "${tmp_file1}" ] && rm -f ${tmp_file1}
-    [ -f "${tmp_file2}" ] && rm -f ${tmp_file2}
-    touch $tmp_file1
-    touch $tmp_file2
+    #tmp_file1=/dev/shm/net_test1.pl
+    #tmp_file2=/dev/shm/net_test2.pl
+    #[ -f "${tmp_file1}" ] && rm -f ${tmp_file1}
+    #[ -f "${tmp_file2}" ] && rm -f ${tmp_file2}
+    #touch $tmp_file1
+    #touch $tmp_file2
     
     # 遍历所有节点进行网络测试
-    for node in ${nodes[@]};
-    do
+    #for node in ${nodes[@]};
+    #do
         # 测试节点响应：发送请求到节点的net_test接口，获取HTTP状态码和总耗时
-        NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${node}/net_test|xargs)
-        RES=$(echo ${NODE_CHECK}|awk '{print $1}')
-        NODE_STATUS=$(echo ${NODE_CHECK}|awk '{print $2}')
+        #NODE_CHECK=$(curl --connect-timeout 3 -m 3 2>/dev/null -w "%{http_code} %{time_total}" ${node}/net_test|xargs)
+        #RES=$(echo ${NODE_CHECK}|awk '{print $1}')
+        #NODE_STATUS=$(echo ${NODE_CHECK}|awk '{print $2}')
         # 计算实际耗时（减去500ms的基础延迟，并转换为毫秒整数）
-        TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $3 * 1000 - 500 }'|cut -d '.' -f 1)
+        #TIME_TOTAL=$(echo ${NODE_CHECK}|awk '{print $3 * 1000 - 500 }'|cut -d '.' -f 1)
         
         # 如果节点响应正常（HTTP状态码为200）
-        if [ "${NODE_STATUS}" == "200" ];then
+        #if [ "${NODE_STATUS}" == "200" ];then
             # 响应时间小于300ms的情况
-            if [ $TIME_TOTAL -lt 300 ];then
-                if [ $RES -ge 1500 ];then
+            #if [ $TIME_TOTAL -lt 300 ];then
+                #if [ $RES -ge 1500 ];then
                     # 将下载速度（RES）和节点URL记录到tmp_file1
-                    echo "$RES $node" >> $tmp_file1
-                fi
+                    #echo "$RES $node" >> $tmp_file1
+                #fi
             # 响应时间大于等于300ms的情况
-            else
-                if [ $RES -ge 1500 ];then
+            #else
+                #if [ $RES -ge 1500 ];then
                     # 将响应时间（TIME_TOTAL）和节点URL记录到tmp_file2
-                    echo "$TIME_TOTAL $node" >> $tmp_file2
-                fi
-            fi
+                    #echo "$TIME_TOTAL $node" >> $tmp_file2
+                #fi
+            #fi
 
-            i=$(($i+1))
+            #i=$(($i+1))
             # 如果找到响应时间小于300ms且下载速度大于2390的优质节点，提前结束测试
-            if [ $TIME_TOTAL -lt 300 ];then
-                if [ $RES -ge 2390 ];then
-                    break;
-                fi
-            fi	
-        fi
-    done
+            #if [ $TIME_TOTAL -lt 300 ];then
+                #if [ $RES -ge 2390 ];then
+                    #break;
+                #fi
+            #fi	
+        #fi
+    #done
 
     # 优先选择tmp_file1中下载速度最快的节点（按RES降序排序）
-    NODE_URL=$(cat $tmp_file1|sort -r -g -t " " -k 1|head -n 1|awk '{print $2}')
+    #NODE_URL=$(cat $tmp_file1|sort -r -g -t " " -k 1|head -n 1|awk '{print $2}')
     
     # 如果没有找到响应时间小于300ms的节点，则从tmp_file2中选择响应时间最短的节点
-    if [ -z "$NODE_URL" ];then
-        NODE_URL=$(cat $tmp_file2|sort -g -t " " -k 1|head -n 1|awk '{print $2}')
+    #if [ -z "$NODE_URL" ];then
+        #NODE_URL=$(cat $tmp_file2|sort -g -t " " -k 1|head -n 1|awk '{print $2}')
         # 如果仍然没有找到合适的节点，则使用默认节点
-        if [ -z "$NODE_URL" ];then
-            NODE_URL='https://download.bt.cn';
-        fi
-    fi
+        #if [ -z "$NODE_URL" ];then
+            #NODE_URL='https://download.bt.cn';
+        #fi
+    #fi
     
     # 清理临时文件
-    rm -f $tmp_file1
-    rm -f $tmp_file2
+    #rm -f $tmp_file1
+    #rm -f $tmp_file2
     
     # 设置最终选择的下载节点URL
-    download_Url=$NODE_URL
-    downloads_Url=http://io.bt.sb
+    #download_Url=$NODE_URL
+    #downloads_Url=http://io.bt.sb
     
-    echo "Download node: $download_Url";
-    echo '---------------------------------------------';
+    #echo "Download node: $download_Url";
+    #echo '---------------------------------------------';
 }
 # 卸载指定软件包
 # 根据包管理器类型（yum或apt-get）卸载指定的软件包
@@ -1072,7 +1088,7 @@ Install_Python_Lib(){
 			is_package=$($python_bin -m psutil 2>&1|grep package)
 			if [ "$is_package" = "" ];then
 				# 2025/12/14 14点20分 已上传Release Common
-				wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip.txt -T 15
+				wget -q --show-progress -O $pyenv_path/pyenv/pip.txt ${dlco}/pip.txt -T 15
 				$pyenv_path/pyenv/bin/pip install -U pip
 				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 				$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
@@ -1168,11 +1184,11 @@ Install_Python_Lib(){
 		# 2025/12/12 17点36分 已上传至Release 通用区
 		
 		#wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
-		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
+		wget -q --show-progress -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
 		if [ "$?" != "0" ];then
-			get_node_url $download_Url
+			#get_node_url $download_Url
 			#wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
-			wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
+			wget -q --show-progress -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
 		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
@@ -1206,7 +1222,7 @@ Install_Python_Lib(){
 	python_src_path="/www/Python-${py_version}"
 	# 2025/12/14 已上传 Release Common
 	# wget -O $python_src $download_Url/src/Python-${py_version}.tar.xz -T 15
-	wget -O $python_src $download_Url/src/Python-3.7.16.tar.xz -T 15
+	wget -q --show-progress -O $python_src ${dlco}/Python-3.7.16.tar.xz -T 15
 	tmp_size=$(du -b $python_src|awk '{print $1}')
 	if [ $tmp_size -lt 10703460 ];then
 		rm -f $python_src
@@ -1227,8 +1243,8 @@ Install_Python_Lib(){
 	# 2025/12/14 14点27分 已上传Release Commom
 	#wget -O $pyenv_path/pyenv/bin/activate $download_Url/install/pyenv/activate.panel -T 5
 	#wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip-3.7.16.txt -T 5
-	wget -O $pyenv_path/pyenv/bin/activate ${dlco}/activate.panel -T 5
-	wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip-3.7.16.txt -T 5
+	wget -q --show-progress -O $pyenv_path/pyenv/bin/activate ${dlco}/activate.panel -T 5
+	wget -q --show-progress -O $pyenv_path/pyenv/pip.txt ${dlco}/pip-3.7.16.txt -T 5
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 $pyenv_path/pyenv/bin/pip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 $pyenv_path/pyenv/bin/python
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
@@ -1241,7 +1257,7 @@ Install_Python_Lib(){
 
 	# 2025/12/14 14点27分 已上传Release Commom
 	#wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
-	wget -O pip-packs.txt ${dlco}/pip-packs.txt
+	wget -q --show-progress -O pip-packs.txt ${dlco}/pip-packs.txt
 	echo "正在后台安装pip依赖请稍等.........."
 	PIP_PACKS=$(cat pip-packs.txt)
 	for P_PACK in ${PIP_PACKS};
@@ -1295,13 +1311,13 @@ Install_Bt(){
 	# 2025/12/14 已上传 Release 11.0
 	#wget -O /etc/init.d/bt ${download_Url}/install/src/bt6.init -T 15
 	#wget -O /www/server/panel/install/public.sh ${downloads_Url}/install/public.sh -T 15
-	wget -O /etc/init.d/bt ${dl11}/src/bt6.init -T 15
-	wget -O /www/server/panel/install/public.sh ${dlco}/public.sh -T 15
+	wget -q --show-progress -O /etc/init.d/bt ${dl11}/src/bt6.init -T 15
+	wget -q --show-progress -O /www/server/panel/install/public.sh ${dlco}/public.sh -T 15
 	echo "=============================================="
 	echo "正在下载面板文件,请稍等..................."
 	echo "=============================================="
 	#wget -O panel.zip ${downloads_Url}/install/src/panel6_latest.zip -T 15
-	wget -O panel.zip ${dl11}/panel6_latest.zip -T 15
+	wget -q --show-progress -O panel.zip ${dl11}/panel6_latest.zip -T 15
 	#wget -O panel.zip ${download_Url}/install/src/panel-lts.zip -T 15
 
 	if [ -f "${setup_path}/server/panel/data/default.db" ];then
@@ -1381,7 +1397,7 @@ Install_Bt(){
 	rm -f panel.zip
 	# 2025/12/14 14点42分 已上传Release 11.0
 	#wget -O /www/server/panel/data/userInfo.json http://io.bt.sy/install/userInfo.json
-	wget -O /www/server/panel/data/userInfo.json ${dlco}/userInfo.json
+	wget -q --show-progress -O /www/server/panel/data/userInfo.json ${dlco}/userInfo.json
 	sed -i 's/[0-9\.]\+[ ]\+www.bt.cn//g' /etc/hosts
 	sed -i 's/[0-9\.]\+[ ]\+api.bt.sb//g' /etc/hosts
 	rm -f ${setup_path}/server/panel/class/*.pyc
@@ -1396,9 +1412,9 @@ Install_Bt(){
 	#wget -O /etc/init.d/bt ${download_Url}/install/src/bt7.init -T 15
 	#wget -O /www/server/panel/init.sh ${download_Url}/install/src/bt7.init -T 15
 	#wget -O /www/server/panel/data/softList.conf ${download_Url}/install/conf/softListtls10.conf
-	wget -O /etc/init.d/bt ${dl11}/bt7.init -T 15
-	wget -O /www/server/panel/init.sh ${dl11}/bt7.init -T 15
-	wget -O /www/server/panel/data/softList.conf ${dl11}/softListtls10.conf
+	wget -q --show-progress -O /etc/init.d/bt ${dl11}/bt7.init -T 15
+	wget -q --show-progress -O /www/server/panel/init.sh ${dl11}/bt7.init -T 15
+	wget -q --show-progress -O /www/server/panel/data/softList.conf ${dl11}/softListtls10.conf
 
   	if [ ! -f "${setup_path}/server/panel/data/installCount.pl" ];then
 		echo "1 $(date)" > ${setup_path}/server/panel/data/installCount.pl
@@ -1728,7 +1744,7 @@ PING0_RESULT=$(curl -sS --connect-timeout 5 -m 5 ping0.cc/geo 2>/dev/null)
 
 if [ $? -eq 0 ] && [ -n "$PING0_RESULT" ]; then
     # ping0.cc请求成功，根据内容判断地区
-    echo -e "$PING0_RESULT"
+    #echo -e "$PING0_RESULT"
     if echo "$PING0_RESULT" | grep -q -E "香港|台湾|澳门"; then
         CN_CHECK="False"
         echo -e "检测到港澳台地区"
@@ -1883,7 +1899,7 @@ echo -e "=================================================================="
 endTime=`date +%s`
 ((outTime=($endTime-$startTime)/60))
 if [ "${outTime}" -le "5" ];then
-    echo ${download_Url} > /www/server/panel/install/d_node.pl
+    echo https://download.bt.cn > /www/server/panel/install/d_node.pl
 fi
 if [ "${outTime}" == "0" ];then
 	((outTime=($endTime-$startTime)))
