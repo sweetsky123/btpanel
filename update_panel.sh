@@ -103,7 +103,7 @@ get_version(){
         return
     fi
     # version=$(curl -Ss --connect-timeout 5 -m 2 https://api.bt.sb/api/panel/get_version)
-	wget -O get_version https://github.com/sweetsky123/btpanel/releases/download/11.0/get_version
+	wget -O get_version ${dllt}/get_version
 	version=$(cat get_version)
 	rm -f get_version
 	
