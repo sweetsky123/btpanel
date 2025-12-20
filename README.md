@@ -7,10 +7,6 @@ if [ -f /usr/bin/curl ];then curl -sSO -L https://github.com/sweetsky123/btpanel
 ### 更新面板至最新（11.4）版本，所有版本包括低版本都可以用此命令更新。
 
 ```
-wget https://github.com/sweetsky123/btpanel/releases/download/11.4/update_panel.sh && bash update_panel.sh && rm update_panel.sh
-```
-
-```
-curl -O -L https://github.com/sweetsky123/btpanel/releases/download/11.4/update_panel.sh && bash update_panel.sh && rm update_panel.sh
+if [ -f /usr/bin/curl ];then curl -sSO -L https://github.com/sweetsky123/btpanel/releases/latest/download/update_panel.sh;else wget -O update_panel.sh https://github.com/sweetsky123/btpanel/releases/latest/download/update_panel.sh;fi;bash update_panel.sh && rm -rf update_panel.sh
 ```
 
