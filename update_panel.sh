@@ -95,7 +95,7 @@ select_node(){
 
     #. $public_file
 
-    #download_Url=$NODE_URL
+    download_Url=https:/download.bt.cn
 	#downloads_Url=http://io.bt.sb
 }
 

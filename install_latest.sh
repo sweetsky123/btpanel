@@ -144,10 +144,11 @@ panelPort=$(expr $RANDOM % 55535 + 10000)
 Ready_Check(){
     WWW_DISK_SPACE=$(df |grep /www|awk '{print $4}')
     ROOT_DISK_SPACE=$(df |grep /$|awk '{print $4}')
-	
+	echo -e ""
 	echo -e "============================================"
 	echo -e "正在检查磁盘剩余空间"
 	echo -e "============================================"
+	echo -e ""
    if [ "${ROOT_DISK_SPACE}" -le 412000 ];then
 	df -h
         echo -e "系统盘剩余空间不足400M 无法继续安装宝塔面板！"
@@ -313,9 +314,11 @@ Set_Ssl(){
     fi
 }
 Add_lib_Install(){
+	echo -e ""
 	echo -e "============================================"
 	echo -e "正在检测操作系统发行版本"
 	echo -e "============================================"
+	echo -e ""
 	if [ -f "/etc/os-release" ];then
 		. /etc/os-release
 		OS_V=${VERSION_ID%%.*}
@@ -337,9 +340,11 @@ Add_lib_Install(){
 	fi
 
 	X86_CHECK=$(uname -m|grep x86_64)
+	echo -e ""
 	echo -e "============================================"
 	echo -e "正在检测软件包管理系统版本"
 	echo -e "============================================"
+	echo -e ""
 	if [ "${OS_NAME}" ] && [ "${X86_CHECK}" ];then
 		if [ "${PM}" = "yum" ]; then
 			mtype="1"
@@ -361,9 +366,11 @@ Get_Pack_Manager(){
 }
 Set_Repo_Url(){
 	# 自动检测当前APT源的速度和可用性，如果发现访问慢或是国外源，则替换为国内镜像源。
+	echo -e ""
 	echo -e "============================================"
 	echo -e "检测更新源的速度和可用性"
 	echo -e "============================================"
+	echo -e ""
 	# 只对使用apt-get包管理器的系统（Debian/Ubuntu）生效
 	#if [ "${PM}"="apt-get" ];then  原条件判断语法有问题
 	if [ "${PM}" = "apt-get" ];then
@@ -666,8 +673,10 @@ get_node_url(){
 			apt-get install wget -y
         fi
     fi
-
+	echo -e "============================================"
+	echo -e "检查下载节点"
 	echo -e "跳过选择节点"
+	echo -e "============================================"
     # 如果存在预先配置的节点文件，则直接读取其中的节点URL并返回
     #if [ -f "/www/node.pl" ];then
         #download_Url=$(cat /www/node.pl)
