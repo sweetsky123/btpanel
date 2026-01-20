@@ -1,0 +1,1 @@
+import{_ as e}from"./utils-lib.js?v=1768643427";import{x as r,y as t}from"./base-lib.js?v=1768643427";import"./__commonjsHelpers__.js?v=1768643427";const o={};function c(n,s){return r(),t("div",null," 55555 ")}const f=e(o,[["render",c]]);export{f as default};
