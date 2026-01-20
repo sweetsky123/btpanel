@@ -1,0 +1,1 @@
+import{c as s,x as r,O as a,aZ as n}from"./base-lib.js?v=1768643427";import"./__commonjsHelpers__.js?v=1768643427";const i=s({__name:"compatible",props:{dependencies:{default:()=>[]},message:{default:""}},setup(e){const t=e;return(c,p)=>{const o=n;return r(),a(o,{type:"error",description:t.message,class:"!mb-1.6rem"},null,8,["description"])}}});export{i as default};
