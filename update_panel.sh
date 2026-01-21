@@ -392,6 +392,12 @@ update_panel(){
         wget -T 5 -O $setup_path/server/panel/config/config.json ${dlco}/config.json
         wget -T 5 -O $setup_path/server/panel/config/dns_api.json ${dlco}/dns_api.json
     fi
+	
+	# 修复11.5.0错误
+	echo -e "检测到指定版本为11.5.0，正在修复可能的pip依赖问题"
+	if [ "$version" = "11.5.0" ]; then
+		$pyenv_path/pyenv/bin/python3 -m pip install asn1crypto==1.5.1 cbor2==5.4.6
+	fi
 
     chattr -i /etc/init.d/bt
     chmod +x /etc/init.d/bt
