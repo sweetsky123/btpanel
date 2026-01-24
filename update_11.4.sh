@@ -106,7 +106,7 @@ get_version(){
     # version=$(curl -Ss --connect-timeout 5 -m 2 https://api.bt.sb/api/panel/get_version)
 	#wget -O get_version ${dllt}/get_version
 	version=11.4.0
-	rm -f get_version
+	#rm -f get_version
 	
     if [ "$version" = '' ];then
         version='11.4.0'
