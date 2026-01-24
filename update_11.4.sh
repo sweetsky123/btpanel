@@ -361,7 +361,7 @@ Get_Versions(){
 
 update_panel(){
     #wget -T 5 -O /tmp/panel.zip $downloads_Url/install/update/LinuxPanel-${version}.zip
-	wget -T 5 -O /tmp/panel.zip https://github.com/sweetsky123/btpanel/releases/download/${version}/LinuxPanel-${version}.zip
+	wget -T 5 -O /tmp/panel.zip https://github.com/sweetsky123/btpanel/releases/download/11.4/LinuxPanel-${version}.zip
     chattr -i /www/server/panel/data/userInfo.json
     dsize=$(du -b /tmp/panel.zip|awk '{print $1}')
     if [ $dsize -lt 10240 ];then
