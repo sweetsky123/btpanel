@@ -3,6 +3,10 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 LANG=en_US.UTF-8
 
+# UPX安装脚本
+# Pyenv/Python-3.7.16/
+
+
 # 通用下载链接
 dlco=https://github.com/sweetsky123/btpanel/releases/download/common/
 # ${dlco}
@@ -1193,11 +1197,11 @@ Install_Python_Lib(){
 		# 2025/12/12 17点36分 已上传至Release 通用区
 		
 		#wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
-		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
+		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64-upx.tar.gz -T 20
 		if [ "$?" != "0" ];then
 			#get_node_url $download_Url
 			#wget -O $pyenv_file $download_Url/install/pyenv/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
-			wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 20
+			wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64-upx.tar.gz -T 20
 		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
@@ -1231,7 +1235,7 @@ Install_Python_Lib(){
 	python_src_path="/www/Python-${py_version}"
 	# 2025/12/14 已上传 Release Common
 	# wget -O $python_src $download_Url/src/Python-${py_version}.tar.xz -T 15
-	wget -O $python_src ${dlco}/Python-3.7.16.tar.xz -T 15
+	wget -O $python_src ${dlco}/Python-3.7.16-upx.tar.xz -T 15
 	tmp_size=$(du -b $python_src|awk '{print $1}')
 	if [ $tmp_size -lt 10703460 ];then
 		rm -f $python_src
@@ -1320,7 +1324,7 @@ Install_Bt(){
 	# 2025/12/14 已上传 Release 11.0
 	#wget -O /etc/init.d/bt ${download_Url}/install/src/bt6.init -T 15
 	#wget -O /www/server/panel/install/public.sh ${downloads_Url}/install/public.sh -T 15
-	wget -O /etc/init.d/bt ${dl11}/src/bt6.init -T 15
+	wget  -O /etc/init.d/bt ${dl11}/src/bt6.init -T 15
 	wget -O /www/server/panel/install/public.sh ${dlco}/public.sh -T 15
 	echo "=============================================="
 	echo "正在下载面板文件,请稍等..................."

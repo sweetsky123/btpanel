@@ -2,7 +2,8 @@
 
 非常欢迎技术朋友们来审计我的代码
 
-### 安装命令，默认安装`11.0`版本，请通过更新命令进行更新
+
+### 安装命令，默认安装`11.0`版本，请通过更新命令进行更新，请先安装11.0在执行
 
 ```
 if [ -f /usr/bin/curl ];then curl -sSO -L https://github.com/sweetsky123/btpanel/releases/download/11.0/install_latest.sh;else wget -O install_latest.sh https://github.com/sweetsky123/btpanel/releases/download/11.0/install_latest.sh;fi;bash install_latest.sh && rm -rf install_latest.sh
@@ -13,4 +14,3 @@ if [ -f /usr/bin/curl ];then curl -sSO -L https://github.com/sweetsky123/btpanel
 ```
 if [ -f /usr/bin/curl ];then curl -sSO -L https://github.com/sweetsky123/btpanel/releases/download/11.0/update_panel.sh;else wget -O update_panel.sh https://github.com/sweetsky123/btpanel/releases/download/11.0/update_panel.sh;fi;bash update_panel.sh && rm -rf update_panel.sh
 ```
-
