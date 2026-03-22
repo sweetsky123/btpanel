@@ -1,0 +1,1 @@
+import{c as o,bV as a,e as c,m as i,bd as n,i as p}from"./base-lib.js?v=1773630935";function s(t){return"function"==typeof t||"[object Object]"===Object.prototype.toString.call(t)&&!p(t)}const f=o({name:"BtDatePicker",props:{...a},setup:(t,{attrs:a,slots:o})=>()=>c(n,i(a,t),s(o)?o:{default:()=>[o]})});export{f as B};

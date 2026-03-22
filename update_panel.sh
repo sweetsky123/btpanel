@@ -109,8 +109,8 @@ get_version(){
 	rm -f get_version
 	
     if [ "$version" = '' ];then
-        version='11.4.0'
-		echo -e "无法获取到版本号，默认下载11.4.0版本"
+        version='11.6.0'
+		echo -e "无法获取到版本号，默认下载11.6.0版本"
     fi
 }
 
@@ -394,11 +394,11 @@ update_panel(){
     fi
 	
 	# 修复11.5.0错误
-	echo -e "检测到指定版本为11.5.0，正在修复可能的pip依赖问题"
-	if [ "$version" = "11.5.0" ]; then
-		$pyenv_path/pyenv/bin/python3 -m pip install asn1crypto==1.5.1 cbor2==5.4.6
-	fi
-
+	#if [ "$version" = "11.5.0" ]; then
+		#echo -e "检测到指定版本大于等于11.5.0，正在修复可能的pip依赖问题"
+		#$pyenv_path/pyenv/bin/python3 -m pip install asn1crypto==1.5.1 cbor2==5.4.6
+	#fi
+	
     chattr -i /etc/init.d/bt
     chmod +x /etc/init.d/bt
     # if [ $up_plugin = 1 ];then
@@ -461,3 +461,35 @@ update_panel
 update_end
 
 
+# 检测版本号，修复pip依赖问题
+version_ge_1150() {
+    v="$1"
+    major=$(echo "$v" | cut -d. -f1)
+    minor=$(echo "$v" | cut -d. -f2)
+    patch=$(echo "$v" | cut -d. -f3)
+    patch=${patch:-0}   # 若 patch 缺失，补为 0
+
+    if [ "$major" -gt 11 ]; then
+        return 0
+    elif [ "$major" -lt 11 ]; then
+        return 1
+    else
+        if [ "$minor" -gt 5 ]; then
+            return 0
+        elif [ "$minor" -lt 5 ]; then
+            return 1
+        else
+            # minor 等于 5 时，比较 patch
+            if [ "$patch" -ge 0 ]; then
+                return 0
+            else
+                return 1
+            fi
+        fi
+    fi
+}
+
+if version_ge_1150 "$version"; then
+	echo -e "检测到指定版本大于等于11.5.0，正在修复可能的pip依赖问题"
+	$pyenv_path/pyenv/bin/python3 -m pip install asn1crypto==1.5.1 cbor2==5.4.6
+fi
