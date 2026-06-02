@@ -1,6 +1,16 @@
 #!/bin/bash
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 pyenv_bin=/www/server/panel/pyenv/bin
+rep_path=${pyenv_bin}:$PATH
+if [ -d "$pyenv_bin" ];then
+	PATH=$rep_path
+fi
+export PATH
+LANG=en_US.UTF-8
+
+#!/bin/bash
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+pyenv_bin=/www/server/panel/pyenv/bin
 
 # 通用下载链接
 dlco=https://github.com/sweetsky123/btpanel/releases/download/common/
@@ -10,20 +20,10 @@ dlco=https://github.com/sweetsky123/btpanel/releases/download/common/
 dl11=https://github.com/sweetsky123/btpanel/releases/download/11.0/
 # ${dl11}
 
-# 11.4下载链接
-dl14=https://github.com/sweetsky123/btpanel/releases/download/11.0/
-# ${dl14}
-
 # lastest下载链接
 dllt=https://github.com/sweetsky123/btpanel/releases/latest/download/
 # ${dllt}
 
-rep_path=${pyenv_bin}:$PATH
-if [ -d "$pyenv_bin" ];then
-	PATH=$rep_path
-fi
-export PATH
-LANG=en_US.UTF-8
 
 Font_Yellow='\033[1;33m'
 Font_Suffix='\033[0m'
@@ -109,14 +109,14 @@ get_version(){
 	rm -f get_version
 	
     if [ "$version" = '' ];then
-        version='11.6.0'
-		echo -e "无法获取到版本号，默认下载11.6.0版本"
+        version='11.7.0'
+		echo -e "无法获取到版本号，默认下载11.7.0版本"
     fi
 }
 
-#if [ "$1" ];then
-	#version=$1
-#fi
+if [ "$1" ];then
+	version=$1
+fi
 
 install_pack(){
 	if [ -f /usr/bin/yum ];then
@@ -127,30 +127,75 @@ install_pack(){
 }
 
 install_python(){
-	curl -Ss --connect-timeout 3 -m 60 ${dlco}/pip_select.sh
-	bash pip_select.sh
+	curl -Ss --connect-timeout 3 -m 60 $dlco/pip_select.sh|bash
 	pyenv_path="/www/server/panel"
     python_bin=$pyenv_path/pyenv/bin/python
 	if [ -f $pyenv_path/pyenv/bin/python ];then
-		is_err=$($pyenv_path/pyenv/bin/python3.7 -V 2>&1|grep 'Could not find platform')
-		if [ "$is_err" = "" ];then
+	 	is_ssl=$($python_bin -c "import ssl" 2>&1|grep cannot)
+		$pyenv_path/pyenv/bin/python3.7 -V
+		if [ $? -eq 0 ] && [ -z "${is_ssl}" ];then
 			chmod -R 700 $pyenv_path/pyenv/bin
 			is_package=$($python_bin -m psutil 2>&1|grep package)
 			if [ "$is_package" = "" ];then
-				wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip.txt -T 5
+				wget -O $pyenv_path/pyenv/pip.txt $dlco/pip-3.7.16.txt -T 15
 				$pyenv_path/pyenv/bin/pip install -U pip
-				$pyenv_path/pyenv/bin/pip install -U setuptools
+				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 				$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 			fi
 			source $pyenv_path/pyenv/bin/activate
+			chmod -R 700 $pyenv_path/pyenv/bin
 			return
 		else
 			rm -rf $pyenv_path/pyenv
 		fi
 	fi
+
+	is_loongarch64=$(uname -a|grep loongarch64)
+	if [ "$is_loongarch64" != "" ] && [ -f "/usr/bin/yum" ];then
+		yumPacks="python3-devel python3-pip python3-psutil python3-gevent python3-pyOpenSSL python3-paramiko python3-flask python3-rsa python3-requests python3-six python3-websocket-client"
+		yum install -y ${yumPacks}
+		for yumPack in ${yumPacks}
+		do
+			rpmPack=$(rpm -q ${yumPack})
+			packCheck=$(echo ${rpmPack}|grep not)
+			if [ "${packCheck}" ]; then
+				yum install ${yumPack} -y
+			fi
+		done
+
+		pip3 install -U pip
+		pip3 install Pillow psutil pyinotify pycryptodome upyun oss2 pymysql qrcode qiniu redis pymongo Cython configparser cos-python-sdk-v5 supervisor gevent-websocket pyopenssl
+		pip3 install flask==1.1.4
+		pip3 install Pillow -U
+
+		pyenv_bin=/www/server/panel/pyenv/bin
+		mkdir -p $pyenv_bin
+		ln -sf /usr/local/bin/pip3 $pyenv_bin/pip
+		ln -sf /usr/local/bin/pip3 $pyenv_bin/pip3
+		ln -sf /usr/local/bin/pip3 $pyenv_bin/pip3.7
+
+		if [ -f "/usr/bin/python3.7" ];then
+			ln -sf /usr/bin/python3.7 $pyenv_bin/python
+			ln -sf /usr/bin/python3.7 $pyenv_bin/python3
+			ln -sf /usr/bin/python3.7 $pyenv_bin/python3.7
+		elif [ -f "/usr/bin/python3.6"  ]; then
+			ln -sf /usr/bin/python3.6 $pyenv_bin/python
+			ln -sf /usr/bin/python3.6 $pyenv_bin/python3
+			ln -sf /usr/bin/python3.6 $pyenv_bin/python3.7
+		fi
+
+		echo > $pyenv_bin/activate
+
+		return
+	fi
+
     install_pack
-	py_version="3.7.9"
+	py_version="3.7.16"
 	mkdir -p $pyenv_path
+	echo "True" > /www/disk.pl
+	if [ ! -w /www/disk.pl ];then
+		Red_Error "ERROR: Install python env fielded." "ERROR: /www目录无法写入，请检查目录/用户/磁盘权限！"
+	fi
 	os_type='el'
 	os_version='7'
 	is_export_openssl=0
@@ -160,42 +205,48 @@ install_python(){
 	echo "OS: $os_type - $os_version"
 	is_aarch64=$(uname -a|grep aarch64)
 	if [ "$is_aarch64" != "" ];then
-		os_version="aarch64"
+		is64bit="aarch64"
 	fi
 	up_plugin=1
 
 	if [ -f "/www/server/panel/pymake.pl" ];then
 		os_version=""
 		rm -f /www/server/panel/pymake.pl
-	fi
-
+	fi	
+	echo "==============================================="
+	echo "正在下载面板运行环境，请稍等..............."
+	echo "==============================================="
 	if [ "${os_version}" != "" ];then
 		pyenv_file="/www/pyenv.tar.gz"
-		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x64.tar.gz -T 10
+		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+		if [ "$?" != "0" ];then
+			get_node_url ${dlco}
+			wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
+		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
-		if [ $tmp_size -lt 703460 ];then
-			rm -f $pyenv_file
-			echo "ERROR: Download python env fielded."
-		else
+		if [ $tmp_size -gt 703460 ];then
 			echo "Install python env..."
-			tar zxvf $pyenv_file -C $pyenv_path/ &> /dev/null
+			tar zxvf $pyenv_file -C $pyenv_path/ > /dev/null
 			chmod -R 700 $pyenv_path/pyenv/bin
-			if [ ! -f $pyenv_path/pyenv/bin/python ];then
-				rm -f $pyenv_file
-				Red_Error "ERROR: Install python env fielded."
-			fi
-			is_err=$($pyenv_path/pyenv/bin/python3.7 -V 2>&1|grep 'Could not find platform')
-			if [ "$is_err" = "" ];then
-				rm -f $pyenv_file
-				ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
-				ln -sf $pyenv_path/pyenv/bin/python3.7 /usr/bin/btpython
-				sync_python_lib
-				source $pyenv_path/pyenv/bin/activate
-				return
+			if [ -f $pyenv_path/pyenv/bin/python ];then
+				$pyenv_path/pyenv/bin/python3.7 -V
+				if [ $? -eq 0 ];then
+					rm -f $pyenv_file
+					ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
+					ln -sf $pyenv_path/pyenv/bin/python3.7 /usr/bin/btpython
+					source $pyenv_path/pyenv/bin/activate
+					return
+				else
+					rm -f $pyenv_file
+					rm -rf $pyenv_path/pyenv
+				fi
 			else
+				rm -f $pyenv_file
 				rm -rf $pyenv_path/pyenv
 			fi
 		fi
+		rm -f $pyenv_file
+		echo "预编译环境下载失败，开始编译安装Python..."
 	fi
 	if [ -f /usr/local/openssl/lib/libssl.so ];then
 		export LDFLAGS="-L/usr/local/openssl/lib"
@@ -207,11 +258,11 @@ install_python(){
 	cd /www
 	python_src='/www/python_src.tar.xz'
 	python_src_path="/www/Python-${py_version}"
-	wget -O $python_src ${dlco}/Python-3.7.16.tar.xz -T 5
+	wget -O $python_src $dlco/Python-${py_version}.tar.xz -T 15
 	tmp_size=$(du -b $python_src|awk '{print $1}')
 	if [ $tmp_size -lt 10703460 ];then
 		rm -f $python_src
-		Red_Error "ERROR: Download python source code fielded."
+		Red_Error "ERROR: Download python source code fielded." "ERROR: 下载宝塔运行环境失败，请尝试重新安装！"
 	fi
 	tar xvf $python_src
 	rm -f $python_src
@@ -221,24 +272,45 @@ install_python(){
 	make install
 	if [ ! -f $pyenv_path/pyenv/bin/python3.7 ];then
 		rm -rf $python_src_path
-		Red_Error "ERROR: Make python env fielded."
+		Red_Error "ERROR: Make python env fielded." "ERROR: 编译宝塔运行环境失败！"
 	fi
 	cd ~
 	rm -rf $python_src_path
-	#wget -O $pyenv_path/pyenv/bin/activate $download_Url/install/pyenv/activate.panel -T 5
-	#wget -O $pyenv_path/pyenv/pip.txt $download_Url/install/pyenv/pip.txt -T 5
-	wget -O $pyenv_path/pyenv/bin/activate ${dlco}/activate.panel -T 5
-	wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip.txt -T 5
+	wget -O $pyenv_path/pyenv/bin/activate $dlco/activate.panel -T 5
+	wget -O $pyenv_path/pyenv/pip.txt $dlco/pip-3.7.16.txt -T 5
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 $pyenv_path/pyenv/bin/pip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 $pyenv_path/pyenv/bin/python
     ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 /usr/bin/btpython
 	chmod -R 700 $pyenv_path/pyenv/bin
 	$pyenv_path/pyenv/bin/pip install -U pip
-	$pyenv_path/pyenv/bin/pip install -U setuptools
+	$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
+	$pyenv_path/pyenv/bin/pip install -U wheel==0.34.2 
 	$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
-    sync_python_lib
+
+	wget -O pip-packs.txt $dlco/pip-packs.txt
+	echo "正在后台安装pip依赖请稍等.........."
+	PIP_PACKS=$(cat pip-packs.txt)
+	for P_PACK in ${PIP_PACKS};
+	do
+		btpip show ${P_PACK} > /dev/null 2>&1
+		if [ "$?" == "1" ];then
+			btpip install ${P_PACK}
+		fi 
+	done
+
+	rm -f pip-packs.txt
+
 	source $pyenv_path/pyenv/bin/activate
+
+	btpip install psutil
+	btpip install gevent
+
+	is_gevent=$($python_bin -m gevent 2>&1|grep -oE package)
+	is_psutil=$($python_bin -m psutil 2>&1|grep -oE package)
+	if [ "${is_gevent}" != "${is_psutil}" ];then
+		Red_Error "ERROR: psutil/gevent install failed!"
+	fi
 }
 
 sync_python_lib(){
@@ -254,8 +326,7 @@ Other_Openssl(){
 		if [ ! -f "/usr/local/openssl/lib/libssl.so" ];then
 			cd /www
 			openssl_src_file=/www/openssl.tar.gz
-			# wget -O $openssl_src_file ${download_Url}/src/openssl-${opensslVersion}.tar.gz
-			wget -O $openssl_src_file ${dlco}/openssl-1.0.2r.tar.gz
+			wget -O $openssl_src_file ${download_Url}/src/openssl-${opensslVersion}.tar.gz
 			tmp_size=$(du -b $openssl_src_file|awk '{print $1}')
 			if [ $tmp_size -lt 703460 ];then
 				rm -f $openssl_src_file
@@ -283,9 +354,7 @@ Insatll_Libressl(){
 		opensslVersion="3.0.2"
 		cd /www
 		openssl_src_file=/www/openssl.tar.gz
-		# wget -O $openssl_src_file ${download_Url}/install/pyenv/libressl-${opensslVersion}.tar.gz
-		wget -O $openssl_src_file ${dlco}/libressl-${opensslVersion}.tar.gz
-		
+		wget -O $openssl_src_file ${download_Url}/install/pyenv/libressl-${opensslVersion}.tar.gz
 		tmp_size=$(du -b $openssl_src_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
 			rm -f $openssl_src_file
@@ -315,8 +384,7 @@ Centos6_Openssl(){
 	fi
 	echo 'Centos6 install openssl-1.0.2...'
 	openssl_rpm_file="/www/openssl.rpm"
-	# wget -O $openssl_rpm_file $download_Url/rpm/centos6/${is64bit}/bt-openssl102.rpm -T 10
-	wget -O $openssl_rpm_file ${dlco}/bt-openssl102.rpm -T 10
+	wget -O $openssl_rpm_file $dlco/bt-openssl102.rpm -T 10
 	tmp_size=$(du -b $openssl_rpm_file|awk '{print $1}')
 	if [ $tmp_size -lt 102400 ];then
 		rm -f $openssl_rpm_file
@@ -360,12 +428,11 @@ Get_Versions(){
 }
 
 update_panel(){
-    #wget -T 5 -O /tmp/panel.zip $downloads_Url/install/update/LinuxPanel-${version}.zip
-	wget -T 5 -O /tmp/panel.zip ${dllt}/LinuxPanel-${version}.zip
+    wget -T 5 -O /tmp/panel.zip ${dllt}/LinuxPanel-${version}.zip
     chattr -i /www/server/panel/data/userInfo.json
     dsize=$(du -b /tmp/panel.zip|awk '{print $1}')
     if [ $dsize -lt 10240 ];then
-        echo "获取更新包失败！"
+        echo "获取更新包失败，请提交issue附带报错信息反馈！"
         exit;
     fi
     unzip -o /tmp/panel.zip -d $setup_path/server/ > /dev/null 2>&1
@@ -375,39 +442,48 @@ update_panel(){
 	#wget -O /www/server/panel/data/softList.conf ${download_Url}/install/conf/softListtls10.conf
     if [ "$version" = "11.0.0" ]; then
         echo "检测到指定版本为11.0.0，正在下载新版 softList 配置..."
-        wget -O /www/server/panel/data/softList.conf ${dl11}/softListtls10.conf
-    fi
+        wget -O /www/server/panel/data/softList.conf ${dlco}/softListtls10.conf
+    fi	
 	cd $setup_path/server/panel/
     check_bt=`cat /etc/init.d/bt|grep BT-Task`
     if [ "${check_bt}" = "" ];then
         rm -f /etc/init.d/bt
-        wget -O /etc/init.d/bt ${dl11}/bt7.init -T 20
+        wget -O /etc/init.d/bt ${dlco}/install/src/bt7.init -T 20
         chmod +x /etc/init.d/bt
     fi
     rm -f /www/server/panel/*.pyc
     rm -f /www/server/panel/class/*.pyc
     if [ ! -f $setup_path/server/panel/config/config.json ];then
-        #wget -T 5 -O $setup_path/server/panel/config/config.json $download_Url/install/pyenv/config/config.json
-        #wget -T 5 -O $setup_path/server/panel/config/dns_api.json $download_Url/install/pyenv/config/dns_api.json
         wget -T 5 -O $setup_path/server/panel/config/config.json ${dlco}/config.json
         wget -T 5 -O $setup_path/server/panel/config/dns_api.json ${dlco}/dns_api.json
     fi
-	
-	# 修复11.5.0错误
-	#if [ "$version" = "11.5.0" ]; then
-		#echo -e "检测到指定版本大于等于11.5.0，正在修复可能的pip依赖问题"
-		#$pyenv_path/pyenv/bin/python3 -m pip install asn1crypto==1.5.1 cbor2==5.4.6
-	#fi
-	
+
     chattr -i /etc/init.d/bt
     chmod +x /etc/init.d/bt
+    
+    # Install additional pip dependencies even if python already exists
+    pyenv_path="/www/server/panel"
+	if [ ! -f "/www/server/panel/pyenv/n.pl" ];then
+		btpip install docxtpl==0.16.7
+		$pyenv_path/pyenv/bin/pip3 install pymongo
+		$pyenv_path/pyenv/bin/pip3 install psycopg2-binary
+		$pyenv_path/pyenv/bin/pip3 install flask -U
+		$pyenv_path/pyenv/bin/pip3 install flask-sock
+		$pyenv_path/pyenv/bin/pip3 install -I gevent
+		btpip install simple-websocket==0.10.0
+		btpip install natsort
+		btpip uninstall enum34 -y
+		btpip install geoip2==4.7.0
+		btpip install brotli
+		btpip install PyMySQL
+	fi
+	btpip install -I pyOpenSSl 2>/dev/null
     # if [ $up_plugin = 1 ];then
     #     $pyenv_bin/python /www/server/panel/tools.py update_to6
     # fi
 }
 
 update_start(){
-	clear
     echo "====================================="
     echo "开始升级宝塔Linux面板，请稍候..."
     echo "====================================="
@@ -449,7 +525,17 @@ update_end(){
     bash /www/server/panel/init.sh start
     echo 'True' > /www/server/panel/data/restart.pl
     pkill -9 gunicorn &>/dev/null &
-}
+	if [ -f "/www/server/nginx/sbin/nginx" ] || [ -f "/www/server/apache/bin/httpd" ];then 
+		# echo "安装基础网站流量统计程序..."
+		wget -O site_new_total.sh ${download_Url}/sitetotali-nstall.sh &> /dev/null 
+		bash site_new_total.sh &> /dev/null
+		rm -f site_new_total.sh
+		# echo "安装基础网站流量统计程序完成"
+	fi
+
+    echo -e "\033[36m已成功升级到 [$version]企业版\033[0m";
+
+# 调用接口获取统计信息
 rm -rf /www/server/phpmyadmin/pma
     
 update_start
@@ -461,35 +547,3 @@ update_panel
 update_end
 
 
-# 检测版本号，修复pip依赖问题
-version_ge_1150() {
-    v="$1"
-    major=$(echo "$v" | cut -d. -f1)
-    minor=$(echo "$v" | cut -d. -f2)
-    patch=$(echo "$v" | cut -d. -f3)
-    patch=${patch:-0}   # 若 patch 缺失，补为 0
-
-    if [ "$major" -gt 11 ]; then
-        return 0
-    elif [ "$major" -lt 11 ]; then
-        return 1
-    else
-        if [ "$minor" -gt 5 ]; then
-            return 0
-        elif [ "$minor" -lt 5 ]; then
-            return 1
-        else
-            # minor 等于 5 时，比较 patch
-            if [ "$patch" -ge 0 ]; then
-                return 0
-            else
-                return 1
-            fi
-        fi
-    fi
-}
-
-if version_ge_1150 "$version"; then
-	echo -e "检测到指定版本大于等于11.5.0，正在修复可能的pip依赖问题"
-	$pyenv_path/pyenv/bin/python3 -m pip install asn1crypto==1.5.1 cbor2==5.4.6
-fi

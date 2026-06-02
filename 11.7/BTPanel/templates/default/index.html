@@ -1,0 +1,33 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta content="IE=edge"><meta name="referer" content="never"><meta name="referer" content="no-referrer"><meta name="renderer" content="webkit"><meta name="viewport"><title>{{g.title}}</title><link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon"><script>this.globalThis || (this.globalThis = this)
+			;(function () {
+				// 禁止后退
+				function blockHist() {
+					if (window.history && window.history.pushState) {
+						window.onpopstate = function () {
+							window.history.pushState('forward', null, '')
+							window.history.forward(1)
+						}
+					}
+					window.history.pushState('forward', null, '') //在IE中必须得有这两行
+					window.history.forward(1)
+				}
+				blockHist()
+				window.vite_public_title = '{{g.title}}' // 网站标题
+				window.vite_public_menu = '{{g.menus}}' // 菜单栏目
+				window.vite_public_debug = '{{g['debug']}}' // 是否开启调试模式
+				window.vite_public_pyversion = '{{g['pyversion']}}' // python版本
+				window.vite_public_version = '{{session['version']}}' // 当前本地版本号
+				window.vite_public_ip = '{{session['address']}}' // 当前服务器IP地址
+				window.vite_public_brand = '{{session['brand']}}' // 品牌
+				window.vite_public_product = '{{session['product']}}' // 产品
+				window.vite_public_year = '{{g['yaer']}}' // 年份
+				window.vite_public_cdn_url = '{{g.cdn_url}}' // cdn地址
+				window.vite_public_request_token = '{{session[g.get_csrf_html_token_key]}}' // csrf_token
+				window.vite_public_soft_flush = '{{session['is_flush_soft_list']}}' // 是否刷新软件列表，解决缓存问题
+				window.vite_public_encryption = '{{session['rsa_public_key']}}' // rsa加密公钥
+				window.vite_public_proxy_key = '' // 代理服务信息
+				window.vite_public_proxy_ip = '192.168.1.196' // 代理服务信息
+				window.vite_public_proxy_port = '8888' // 代理服务信息
+				window.vite_public_panel_type = '{{g['other_js']}}' // 面板类型
+				window.vite_public_file_version = '%VERSION-NUMBER%' // 当前版本随机数，用于编译替换
+			})()</script><script type="module" crossorigin src="/static/vite/js/main.js"></script><link rel="modulepreload" crossorigin href="/static/vite/js/modulepreload-polyfill.js"><link rel="modulepreload" crossorigin href="/static/vite/js/__commonjsHelpers__.js"><link rel="modulepreload" crossorigin href="/static/vite/js/element-lib.js"><link rel="modulepreload" crossorigin href="/static/vite/js/vue-lib.js"><link rel="modulepreload" crossorigin href="/static/vite/js/preload-helper.js"><link rel="modulepreload" crossorigin href="/static/vite/js/public-lib.js"><link rel="modulepreload" crossorigin href="/static/vite/js/request-lib.js"><link rel="stylesheet" crossorigin href="/static/vite/css/style.css"></head><body><link rel="stylesheet" crossorigin href="/static/vite/font/svgtofont.css"><div id="root"></div></body></html>

@@ -1,0 +1,1 @@
+import{f4 as t,ae as u,bO as r,i_ as i,i$ as o,bP as c}from"./utils-lib.js?v=1779153728";import"./base-lib.js?v=1779153728";function f(s){return t(s)}function x(s){return u(s)}function T(s){const t=i(),n=o("keyword"),a=c();return r({...s,extension:[...s.extension||[],t,n,a]})}export{x as a,f as b,T as u};

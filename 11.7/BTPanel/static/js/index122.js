@@ -1,0 +1,1 @@
+import{c as r,aU as n,e as a,m as p,aV as c,i}from"./base-lib.js?v=1779153728";function s(t){return"function"==typeof t||"[object Object]"===Object.prototype.toString.call(t)&&!i(t)}const l=r({name:"BtAlert",props:{...n},setup:(t,{attrs:e,slots:o})=>()=>a(c,p(e,t),s(o)?o:{default:()=>[o]})});export{l as _};
