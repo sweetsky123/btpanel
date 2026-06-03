@@ -78,13 +78,13 @@ check_panel(){
 select_node(){
     public_file=/www/server/panel/install/public.sh
     if [ ! -f $public_file ];then
-        download_file $public_file ${dl11}/public.sh
+        download_file $public_file ${dlco}/public.sh
     fi
 
     publicFileMd5=$(md5sum ${public_file}|awk '{print $1}')
     md5check="db0bc4ee0d73c3772aa403338553ff77"
     if [ "${publicFileMd5}" != "${md5check}"  ]; then
-        download_file $public_file ${dl11}/public.sh
+        download_file $public_file ${dlco}/public.sh
     fi
 
     . $public_file
