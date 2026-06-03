@@ -8,10 +8,6 @@ fi
 export PATH
 LANG=en_US.UTF-8
 
-#!/bin/bash
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-pyenv_bin=/www/server/panel/pyenv/bin
-
 # 通用下载链接
 dlco=https://github.com/sweetsky123/btpanel/releases/download/common/
 # ${dlco}
@@ -23,7 +19,6 @@ dl11=https://github.com/sweetsky123/btpanel/releases/download/11.0/
 # lastest下载链接
 dllt=https://github.com/sweetsky123/btpanel/releases/latest/download/
 # ${dllt}
-
 
 Font_Yellow='\033[1;33m'
 Font_Suffix='\033[0m'
@@ -81,33 +76,30 @@ check_panel(){
 }
 
 select_node(){
-	echo -e "跳过选择下载节点"
-    #public_file=/www/server/panel/install/public.sh
-    #if [ ! -f $public_file ];then
-        #download_file $public_file ${dlco}/public.sh
-    #fi
+    public_file=/www/server/panel/install/public.sh
+    if [ ! -f $public_file ];then
+        download_file $public_file ${dl11}/public.sh
+    fi
 
-    #publicFileMd5=$(md5sum ${public_file}|awk '{print $1}')
-    #md5check="db0bc4ee0d73c3772aa403338553ff77"
-    #if [ "${publicFileMd5}" != "${md5check}"  ]; then
-        #download_file $public_file ${dlco}/public.sh
-    #fi
+    publicFileMd5=$(md5sum ${public_file}|awk '{print $1}')
+    md5check="db0bc4ee0d73c3772aa403338553ff77"
+    if [ "${publicFileMd5}" != "${md5check}"  ]; then
+        download_file $public_file ${dl11}/public.sh
+    fi
 
-    #. $public_file
+    . $public_file
 
-    download_Url=https:/download.bt.cn
-	#downloads_Url=http://io.bt.sb
+    download_Url=$NODE_URL
+	downloads_Url=http://io.bt.sb
 }
 
 get_version(){
     if [ -n "$version" ]; then
         return
     fi
-    # version=$(curl -Ss --connect-timeout 5 -m 2 https://api.bt.sb/api/panel/get_version)
 	wget -O get_version ${dllt}/get_version
 	version=$(cat get_version)
 	rm -f get_version
-	
     if [ "$version" = '' ];then
         version='11.7.0'
 		echo -e "无法获取到版本号，默认下载11.7.0版本"
@@ -127,7 +119,7 @@ install_pack(){
 }
 
 install_python(){
-	curl -Ss --connect-timeout 3 -m 60 $dlco/pip_select.sh|bash
+	curl -Ss --connect-timeout 3 -m 60 $download_Url/install/pip_select.sh|bash
 	pyenv_path="/www/server/panel"
     python_bin=$pyenv_path/pyenv/bin/python
 	if [ -f $pyenv_path/pyenv/bin/python ];then
@@ -137,7 +129,7 @@ install_python(){
 			chmod -R 700 $pyenv_path/pyenv/bin
 			is_package=$($python_bin -m psutil 2>&1|grep package)
 			if [ "$is_package" = "" ];then
-				wget -O $pyenv_path/pyenv/pip.txt $dlco/pip-3.7.16.txt -T 15
+				wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip-3.7.16.txt -T 15
 				$pyenv_path/pyenv/bin/pip install -U pip
 				$pyenv_path/pyenv/bin/pip install -U setuptools==65.5.0
 				$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
@@ -220,7 +212,7 @@ install_python(){
 		pyenv_file="/www/pyenv.tar.gz"
 		wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
 		if [ "$?" != "0" ];then
-			get_node_url ${dlco}
+			get_node_url $download_Url
 			wget -O $pyenv_file ${dlco}/pyenv-${os_type}${os_version}-x${is64bit}.tar.gz -T 20
 		fi
 		tmp_size=$(du -b $pyenv_file|awk '{print $1}')
@@ -258,7 +250,7 @@ install_python(){
 	cd /www
 	python_src='/www/python_src.tar.xz'
 	python_src_path="/www/Python-${py_version}"
-	wget -O $python_src $dlco/Python-${py_version}.tar.xz -T 15
+	wget -O $python_src ${dlco}/Python-${py_version}.tar.xz -T 15
 	tmp_size=$(du -b $python_src|awk '{print $1}')
 	if [ $tmp_size -lt 10703460 ];then
 		rm -f $python_src
@@ -276,8 +268,8 @@ install_python(){
 	fi
 	cd ~
 	rm -rf $python_src_path
-	wget -O $pyenv_path/pyenv/bin/activate $dlco/activate.panel -T 5
-	wget -O $pyenv_path/pyenv/pip.txt $dlco/pip-3.7.16.txt -T 5
+	wget -O $pyenv_path/pyenv/bin/activate ${dlco}/activate.panel -T 5
+	wget -O $pyenv_path/pyenv/pip.txt ${dlco}/pip-3.7.16.txt -T 5
 	ln -sf $pyenv_path/pyenv/bin/pip3.7 $pyenv_path/pyenv/bin/pip
 	ln -sf $pyenv_path/pyenv/bin/python3.7 $pyenv_path/pyenv/bin/python
     ln -sf $pyenv_path/pyenv/bin/pip3.7 /usr/bin/btpip
@@ -288,7 +280,7 @@ install_python(){
 	$pyenv_path/pyenv/bin/pip install -U wheel==0.34.2 
 	$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 
-	wget -O pip-packs.txt $dlco/pip-packs.txt
+	wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
 	echo "正在后台安装pip依赖请稍等.........."
 	PIP_PACKS=$(cat pip-packs.txt)
 	for P_PACK in ${PIP_PACKS};
@@ -384,7 +376,7 @@ Centos6_Openssl(){
 	fi
 	echo 'Centos6 install openssl-1.0.2...'
 	openssl_rpm_file="/www/openssl.rpm"
-	wget -O $openssl_rpm_file $dlco/bt-openssl102.rpm -T 10
+	wget -O $openssl_rpm_file ${dlco}/bt-openssl102.rpm -T 10
 	tmp_size=$(du -b $openssl_rpm_file|awk '{print $1}')
 	if [ $tmp_size -lt 102400 ];then
 		rm -f $openssl_rpm_file
@@ -432,7 +424,7 @@ update_panel(){
     chattr -i /www/server/panel/data/userInfo.json
     dsize=$(du -b /tmp/panel.zip|awk '{print $1}')
     if [ $dsize -lt 10240 ];then
-        echo "获取更新包失败，请提交issue附带报错信息反馈！"
+        echo "获取更新包失败，请及时提交issue进行反馈！"
         exit;
     fi
     unzip -o /tmp/panel.zip -d $setup_path/server/ > /dev/null 2>&1
@@ -442,13 +434,13 @@ update_panel(){
 	#wget -O /www/server/panel/data/softList.conf ${download_Url}/install/conf/softListtls10.conf
     if [ "$version" = "11.0.0" ]; then
         echo "检测到指定版本为11.0.0，正在下载新版 softList 配置..."
-        wget -O /www/server/panel/data/softList.conf ${dlco}/softListtls10.conf
+        wget -O /www/server/panel/data/softList.conf ${dl11}/softListtls10.conf
     fi	
 	cd $setup_path/server/panel/
     check_bt=`cat /etc/init.d/bt|grep BT-Task`
     if [ "${check_bt}" = "" ];then
         rm -f /etc/init.d/bt
-        wget -O /etc/init.d/bt ${dlco}/install/src/bt7.init -T 20
+        wget -O /etc/init.d/bt ${dl11}/bt7.init -T 20
         chmod +x /etc/init.d/bt
     fi
     rm -f /www/server/panel/*.pyc
@@ -525,17 +517,17 @@ update_end(){
     bash /www/server/panel/init.sh start
     echo 'True' > /www/server/panel/data/restart.pl
     pkill -9 gunicorn &>/dev/null &
+
 	if [ -f "/www/server/nginx/sbin/nginx" ] || [ -f "/www/server/apache/bin/httpd" ];then 
 		# echo "安装基础网站流量统计程序..."
-		wget -O site_new_total.sh ${download_Url}/sitetotali-nstall.sh &> /dev/null 
+		wget -O site_new_total.sh ${dlco}/sitetotal-install.sh &> /dev/null 
 		bash site_new_total.sh &> /dev/null
 		rm -f site_new_total.sh
 		# echo "安装基础网站流量统计程序完成"
 	fi
 
     echo -e "\033[36m已成功升级到 [$version]企业版\033[0m";
-
-# 调用接口获取统计信息
+}
 rm -rf /www/server/phpmyadmin/pma
     
 update_start
