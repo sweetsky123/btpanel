@@ -119,7 +119,7 @@ install_pack(){
 }
 
 install_python(){
-	curl -Ss --connect-timeout 3 -m 60 $download_Url/install/pip_select.sh|bash
+	curl -Ss -L --connect-timeout 3 -m 60 ${dlco}/pip_select.sh|bash
 	pyenv_path="/www/server/panel"
     python_bin=$pyenv_path/pyenv/bin/python
 	if [ -f $pyenv_path/pyenv/bin/python ];then
@@ -280,7 +280,7 @@ install_python(){
 	$pyenv_path/pyenv/bin/pip install -U wheel==0.34.2 
 	$pyenv_path/pyenv/bin/pip install -r $pyenv_path/pyenv/pip.txt
 
-	wget -O pip-packs.txt $download_Url/install/pyenv/pip-packs.txt
+	wget -O pip-packs.txt ${dlco}/pip-packs.txt
 	echo "正在后台安装pip依赖请稍等.........."
 	PIP_PACKS=$(cat pip-packs.txt)
 	for P_PACK in ${PIP_PACKS};
@@ -318,7 +318,7 @@ Other_Openssl(){
 		if [ ! -f "/usr/local/openssl/lib/libssl.so" ];then
 			cd /www
 			openssl_src_file=/www/openssl.tar.gz
-			wget -O $openssl_src_file ${download_Url}/src/openssl-${opensslVersion}.tar.gz
+			wget -O $openssl_src_file ${dlco}/openssl-${opensslVersion}.tar.gz
 			tmp_size=$(du -b $openssl_src_file|awk '{print $1}')
 			if [ $tmp_size -lt 703460 ];then
 				rm -f $openssl_src_file
@@ -346,7 +346,7 @@ Insatll_Libressl(){
 		opensslVersion="3.0.2"
 		cd /www
 		openssl_src_file=/www/openssl.tar.gz
-		wget -O $openssl_src_file ${download_Url}/install/pyenv/libressl-${opensslVersion}.tar.gz
+		wget -O $openssl_src_file ${dlco}//libressl-${opensslVersion}.tar.gz
 		tmp_size=$(du -b $openssl_src_file|awk '{print $1}')
 		if [ $tmp_size -lt 703460 ];then
 			rm -f $openssl_src_file
